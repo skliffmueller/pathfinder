@@ -1,5 +1,6 @@
-import testMapUrl from "../assets/path.png";
+import robotImageUrl from "../../assets/robot.png";
 import { CellEvent, CellList } from "./CellList";
+import { RobotEvent, RobotList } from "./RobotList";
 import { SpriteSelectorEvent, SpriteSelector } from "./SpriteSelector";
 
 export interface MapCell {
@@ -9,11 +10,24 @@ export interface MapCell {
     x: number;
     y: number;
 }
-
 export interface MapCellOptions {
     seedId?: number;
     spriteIndex?: number;
     rotation?: number; // (rotation * 90deg)
+    x?: number;
+    y?: number;
+}
+
+export interface MapRobot {
+    seedId: number;
+    rotation: number; // (rotation * 45deg)
+    x: number;
+    y: number;
+}
+
+export interface MapRobotOptions {
+    seedId?: number;
+    rotation?: number; // (rotation * 45deg)
     x?: number;
     y?: number;
 }
@@ -30,15 +44,13 @@ export interface ControlInterfaces {
     addButton?: HTMLButtonElement;
     rotationButton?: HTMLButtonElement;
     cellList?: CellList;
+    robotList?: RobotList;
     spriteSelector?: SpriteSelector;
 }
 
 export interface FormState {
-    seedId: number;
     x: number;
     y: number;
-    spriteIndex: number;
-    rotation: number;
 }
 
 /*
@@ -60,6 +72,9 @@ export class MapEditor {
 
     selectedSeedId: number;
 
+    robotImage: HTMLImageElement;
+
+    robots: MapRobot[];
     cells: MapCell[];
 
     sprites: ImageData[][];
@@ -76,51 +91,58 @@ export class MapEditor {
 
         this._canvasOnClick = this._canvasOnClick.bind(this);
         this._onSpriteSelectorClick = this._onSpriteSelectorClick.bind(this);
-        this._onAddButtonClick = this._onAddButtonClick.bind(this);
+        this._onAddRobotClick = this._onAddRobotClick.bind(this);
         this._onClick = this._onClick.bind(this);
         this._onRotate = this._onRotate.bind(this);
         this._onRemove = this._onRemove.bind(this);
+        this._onRobotClick = this._onRobotClick.bind(this);
+        this._onRobotRotate = this._onRobotRotate.bind(this);
+        this._onRobotRemove = this._onRobotRemove.bind(this);
         this._onExportMap = this._onExportMap.bind(this);
 
+        this.robotImage = new Image();
+        this.robotImage.onload = () => {
+            this.robotImage.style.opacity = "0.4";
+        }
+        this.robotImage.src = robotImageUrl;
 
         this.canvas.addEventListener('mousedown', this._canvasOnClick);
 
         this.formState = {
-            seedId: -1,
             x: 0,
             y: 0,
-            spriteIndex: 0,
-            rotation: 0,
         };
 
         this.cells = [];
-
+        this.robots = [];
         this.controlsHTML = `
-    <div id="container" class="fixed px-2 py-3 top-0 right-0 h-screen w-64 border rounded">
-        <div class="my-2">
-            <label>Export</label><br />
-            <a id="exportMap" class="inline-block px-3 py-1 border rounded" href="#">Map</a>
-            <a id="exportRobots" class="inline-block px-3 py-1 border rounded" href="#">Robots</a>
-            <a id="exportPNG" class="inline-block px-3 py-1 border rounded" href="#">PNG</a>
+    <div id="container" class="fixed bg-white px-2 py-3 top-0 right-0 h-screen max-h-screen w-64 border rounded overflow-y-scroll">
+        <div>
+            <div class="my-2">
+                <label>Export</label><br />
+                <a id="exportMap" class="inline-block px-3 py-1 border rounded" href="#">Map</a>
+                <a id="exportRobots" class="inline-block px-3 py-1 border rounded" href="#">Robots</a>
+                <a id="exportPNG" class="inline-block px-3 py-1 border rounded" href="#">PNG</a>
+            </div>
+            <div class="my-2">
+                <label>Width:</label>
+                <input class="w-16" type="number" value="16" />
+                <label>Height:</label>
+                <input class="w-16" type="number" value="12" />
+            </div>
+            <div class="">
+                <label>X:</label><span id="xValue">0</span>
+                <label>Y:</label><span id="yValue">0</span>
+            </div>
+            <div class="flex justify-center p-2">
+                <canvas id="spriteCanvas"></canvas>
+            </div>
+            <div class="MapEditor-Controls-buttons">
+                <button class="border rounded px-3 py-1" id="addRobotButton">Add Robot</button>
+            </div>
+            <ul class="MapEditor-Controls-cellList" id="robotList"></ul>
+            <ul class="MapEditor-Controls-cellList" id="cellList"></ul>
         </div>
-        <div class="my-2">
-            <label>Width:</label>
-            <input class="w-16" type="number" value="16" />
-            <label>Height:</label>
-            <input class="w-16" type="number" value="12" />
-        </div>
-        <div class="">
-            <label>X:</label><span id="xValue">0</span>
-            <label>Y:</label><span id="yValue">0</span>
-        </div>
-        <div class="flex justify-center p-2">
-            <canvas id="spriteCanvas"></canvas>
-        </div>
-        <div class="MapEditor-Controls-buttons">
-            <button class="border rounded px-3 py-1" id="addPathButton">Add Path</button>
-            <button class="border rounded px-3 py-1" id="addRobotButton">Add Robot</button>
-        </div>
-        <ul class="MapEditor-Controls-cellList" id="cellList"></ul>
     </div>
 `;
     }
@@ -142,18 +164,22 @@ export class MapEditor {
         const spriteSelector = new SpriteSelector(spriteCanvas, this._onSpriteSelectorClick);
         spriteSelector.setSpriteImage(this.image.src);
 
-        const addButton = container.querySelector<HTMLButtonElement>('#addPathButton');
-        addButton.addEventListener('click', this._onAddButtonClick);
-
-        const ul = container.querySelector<HTMLElement>('#cellList');
-        const cellList = new CellList(ul, this._onClick, this._onRotate, this._onRemove);
+        const cellUl = container.querySelector<HTMLElement>('#cellList');
+        const cellList = new CellList(cellUl, this._onClick, this._onRotate, this._onRemove);
         cellList.setSpriteImage(this.image.src);
+
+        const addRobotButton = container.querySelector<HTMLElement>('#addRobotButton');
+        addRobotButton.addEventListener('click', this._onAddRobotClick);
+
+        const robotUl = container.querySelector<HTMLElement>('#robotList');
+        const robotList = new RobotList(robotUl, this._onRobotClick, this._onRobotRotate, this._onRobotRemove);
+        robotList.setSpriteImage(this.robotImage.src);
 
         this.controls = {
             xValue,
             yValue,
-            addButton,
             cellList,
+            robotList,
             spriteSelector,
         };
 
@@ -182,18 +208,42 @@ export class MapEditor {
         this.updateCell(event);
         this.renderCanvas();
     }
-    _onAddButtonClick(event: MouseEvent) {
-        this.addCell(this.formState);
-        this._updateCellList();
+
+    _onAddRobotClick(event: Event) {
+        this.addRobot({
+            ...this.formState,
+        });
+        this._updateRobotList();
         this.renderCanvas();
     }
+    _onRobotClick(event: RobotEvent) {
+        // this.selectSeedId(event.seedId);
+    }
+    _onRobotRemove(event: RobotEvent) {
+        this.removeRobot(event.seedId);
+        this.renderCanvas();
+    }
+    _onRobotRotate(event: RobotEvent) {
+        this.updateRobot(event);
+        this.renderCanvas();
+    }
+
     _onSpriteSelectorClick(event: SpriteSelectorEvent) {
-        this.formState.spriteIndex = event.index;
+        this.addCell({
+            ...this.formState,
+            spriteIndex: event.index,
+        });
+        this._updateCellList();
+        this.renderCanvas();
     }
 
     _updateCellList() {
         const cells = this.findCellsAtCords(this.formState.x, this.formState.y);
         this.controls.cellList.updateCells(cells);
+    }
+    _updateRobotList() {
+        const robots = this.findRobotsAtCords(this.formState.x, this.formState.y);
+        this.controls.robotList.updateRobots(robots);
     }
     _resetControls() {
         this.controls.xValue.innerHTML = `${this.formState.x}`;
@@ -291,13 +341,13 @@ export class MapEditor {
         this.image.src = imageUrl;
     }
     addCell(options: MapCellOptions): MapCell {
-        const seedId = Date.now() + (Math.round(Math.random() * 100) / 100);
+        const seedId = (Date.now() & 0xffff) + (Math.round(Math.random() * 100) / 100);
         const cell: MapCell = {
             seedId,
-            spriteIndex: options.spriteIndex | 0,
-            rotation: options.rotation | 0,
-            x: options.x | 0,
-            y: options.y | 0,
+            spriteIndex: options.spriteIndex,
+            rotation: 0,
+            x: options.x,
+            y: options.y,
         };
         this.cells.push(cell);
         return cell;
@@ -316,6 +366,32 @@ export class MapEditor {
     findCellsAtCords(x: number, y: number): MapCell[] {
         return this.cells.filter(cell => (cell.x === x && cell.y === y));
     }
+    addRobot(options: MapRobotOptions): MapRobot {
+        const seedId = (Date.now() & 0xffff) + (Math.round(Math.random() * 100) / 100);
+        const robot: MapRobot = {
+            seedId,
+            rotation: 0,
+            x: options.x,
+            y: options.y,
+        };
+        this.robots.push(robot);
+        return robot;
+    }
+    updateRobot(robot: MapRobotOptions): MapRobot {
+        const robotIndex = this.robots.findIndex(r => (r.seedId === robot.seedId));
+        this.robots[robotIndex] = {
+            ...this.robots[robotIndex],
+            ...robot,
+        };
+        return this.robots[robotIndex];
+    }
+    removeRobot(seedId: number) {
+        this.robots = this.robots.filter(robot => (robot.seedId !== seedId));
+    }
+    findRobotsAtCords(x: number, y: number): MapRobot[] {
+        return this.robots.filter(robot => (robot.x === x && robot.y === y));
+    }
+
     renderCanvas(exportConfig?: boolean) {
         this.ctx.setTransform(1,0,0,1,0,0);
         this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
@@ -326,10 +402,12 @@ export class MapEditor {
             window.open(imageUrl, '_blank');
             return;
         }
+        this._drawRobots();
         this._drawGrid();
         this._drawSelectBox();
     }
     _drawCells() {
+        this.ctx.setTransform(1,0,0,1,0,0);
         const mergedData = this.cells.reduce((data, cell) => {
             const imageData = this.sprites[cell.spriteIndex][cell.rotation];
             let index = data.findIndex((c) => (c.x === cell.x && c.y === cell.y));
@@ -369,7 +447,25 @@ export class MapEditor {
             this.ctx.putImageData(cell.imageData, x, y, 0, 0, SPRITE_WIDTH, SPRITE_HEIGHT);
         });
     }
+    _drawRobots() {
+        const halfRobotWidth = -this.robotImage.width / 2;
+        const halfRobotHeight = -this.robotImage.height / 2;
+        const halfCellWidth = CELL_WIDTH / 2;
+        const halfCellHeight = CELL_HEIGHT / 2;
+        const quarterPi = Math.PI/4;
+        this.ctx.globalAlpha = 0.4;
+
+        this.robots.forEach((robot) => {
+            const x = (robot.x * CELL_WIDTH) + halfCellWidth;
+            const y = (robot.y * CELL_HEIGHT) + halfCellHeight;
+            this.ctx.setTransform(1, 0, 0, 1, x, y);
+            this.ctx.rotate( robot.rotation * quarterPi );
+            this.ctx.drawImage(this.robotImage, halfRobotWidth, halfRobotHeight);
+        });
+        this.ctx.globalAlpha = 1;
+    }
     _drawGrid() {
+        this.ctx.setTransform(1,0,0,1,0,0);
         const xItter = this.canvas.width / CELL_WIDTH;
         const yItter = this.canvas.height / CELL_HEIGHT;
         this.ctx.strokeStyle = "rgba(0,255,255,72)";
@@ -390,6 +486,7 @@ export class MapEditor {
         }
     }
     _drawSelectBox() {
+        this.ctx.setTransform(1,0,0,1,0,0);
         this.ctx.strokeStyle = "rgba(0,0,255,255)";
         this.ctx.strokeRect(this.formState.x * CELL_WIDTH, this.formState.y * CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT);
     }

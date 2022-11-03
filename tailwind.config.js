@@ -17,6 +17,13 @@ module.exports = {
                     900:'rgba(0,0,0,0.9)',
                 },
             },
+            backgroundSize: {
+                'pyth-hyp': '70.66% 70.66%',
+                'pyth-adj': '141.51% 141.51%',
+            },
+            rotate: {
+                '135': '135deg',
+            },
         }
     }
 }

@@ -77,12 +77,15 @@ function main(): void {
 
 function sub(): void {
     const app = document.body;
+    const canvasContainer = document.createElement('div');
     const canvasMap = document.createElement('canvas');
 
+    canvasMap.classList.add('mr-64');
     canvasMap.width = 800;
     canvasMap.height = 600;
 
-    app.appendChild(canvasMap);
+    canvasContainer.appendChild(canvasMap);
+    app.appendChild(canvasContainer);
 
     const mapEditor = new MapEditor(canvasMap, 800, 600);
     mapEditor.setSpriteImage(spriteImageUrl);
