@@ -108,16 +108,14 @@ export class MapEditor {
 
         this.canvas.addEventListener('mousedown', this._canvasOnClick);
 
-        this.formState = {
-            x: 0,
-            y: 0,
-        };
+        this.initializeDefaults();
 
-        this.cells = [];
-        this.robots = [];
         this.controlsHTML = `
     <div id="container" class="fixed bg-white px-2 py-3 top-0 right-0 h-screen max-h-screen w-64 border rounded overflow-y-scroll">
         <div>
+            <div class="my-2">
+                <a id="newMap" class="inline-block px-3 py-1 border rounded" href="#">New Map</a>
+            </div>
             <div class="my-2">
                 <label>Export</label><br />
                 <a id="exportMap" class="inline-block px-3 py-1 border rounded" href="#">Map</a>
@@ -146,10 +144,23 @@ export class MapEditor {
     </div>
 `;
     }
+    initializeDefaults() {
+        this.cells = [];
+        this.robots = [];
+        this.formState = {
+            x: 0,
+            y: 0,
+        };
+        this.width = 16;
+        this.height = 12;
+    }
     createControls() {
         const temp = document.createElement('div');
         temp.innerHTML = this.controlsHTML;
         const container = temp.querySelector<HTMLElement>('#container');
+
+        const newMap = container.querySelector<HTMLElement>('#newMap');
+        newMap.addEventListener('click', this._onNewMap);
 
         const downloadLink = container.querySelector<HTMLElement>('#exportPNG');
         downloadLink.addEventListener('click', () => this.renderCanvas(true));
@@ -185,14 +196,20 @@ export class MapEditor {
 
         return container;
     }
+    _onNewMap(event: Event) {
+        window.localStorage.removeItem('MapEditor_autosave');
+        this.initializeDefaults();
+        this._resetControls();
+    }
     _onExportMap(event: Event) {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
             cells: this.cells,
-            robots: [],
+            robots: this.robots,
+            map: this.renderCanvas(true),
         }));
         let downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "map.json");
+        downloadAnchorNode.setAttribute("download", `map_${Math.round(Date.now()/1000)}.json`);
         document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
@@ -248,6 +265,8 @@ export class MapEditor {
     _resetControls() {
         this.controls.xValue.innerHTML = `${this.formState.x}`;
         this.controls.yValue.innerHTML = `${this.formState.y}`;
+        this.controls.robotList.updateRobots([]);
+        this.controls.cellList.updateCells([]);
     }
     _canvasOnClick(event: MouseEvent) {
         const rect = this.canvas.getBoundingClientRect();
@@ -392,15 +411,13 @@ export class MapEditor {
         return this.robots.filter(robot => (robot.x === x && robot.y === y));
     }
 
-    renderCanvas(exportConfig?: boolean) {
+    renderCanvas(exportConfig?: boolean): string | void {
         this.ctx.setTransform(1,0,0,1,0,0);
         this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
 
         this._drawCells();
         if(exportConfig) {
-            const imageUrl = this.canvas.toDataURL('image/png').replace("image/png", "image/octet-stream");
-            window.open(imageUrl, '_blank');
-            return;
+            return this.canvas.toDataURL('image/png');
         }
         this._drawRobots();
         this._drawGrid();

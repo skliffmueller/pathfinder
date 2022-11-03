@@ -77,7 +77,7 @@ export class SpriteSelector {
         this.ctx.drawImage(this.image, 0, 0);
 
         this._drawGrid();
-        this._drawSelectBox();
+        //this._drawSelectBox();
 
     }
     _drawGrid() {
