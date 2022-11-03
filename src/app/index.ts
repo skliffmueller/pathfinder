@@ -2,7 +2,10 @@ import '../assets/index.scss';
 import { Floorplan } from "./floorplan";
 import { Robot } from "./robot";
 import { Line } from "./line";
+import { MapEditor } from "./map_editor";
 import { add } from "../lib/math";
+
+import spriteImageUrl from "../assets/path_sprites.png";
 
 function main(): void {
     const app = document.body;
@@ -71,6 +74,24 @@ function main(): void {
     }, 200);
 
 }
+
+function sub(): void {
+    const app = document.body;
+    const canvasMap = document.createElement('canvas');
+
+    canvasMap.width = 800;
+    canvasMap.height = 600;
+
+    app.appendChild(canvasMap);
+
+    const mapEditor = new MapEditor(canvasMap, 800, 600);
+    mapEditor.setSpriteImage(spriteImageUrl);
+    const controls = mapEditor.createControls();
+    app.appendChild(controls);
+    mapEditor.renderCanvas();
+}
+
 (function() {
-    main();
+    // main();
+    sub();
 })();
