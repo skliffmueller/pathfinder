@@ -5,6 +5,8 @@ import { SpriteSelectorEvent, SpriteSelector } from "./SpriteSelector";
 
 export interface MapCell {
     seedId: number;
+    speed: number;
+    trackId: number;
     spriteIndex: number;
     rotation: number; // (rotation * 90deg)
     x: number;
@@ -92,9 +94,6 @@ export class MapEditor {
         this._canvasOnClick = this._canvasOnClick.bind(this);
         this._onSpriteSelectorClick = this._onSpriteSelectorClick.bind(this);
         this._onAddRobotClick = this._onAddRobotClick.bind(this);
-        this._onClick = this._onClick.bind(this);
-        this._onRotate = this._onRotate.bind(this);
-        this._onRemove = this._onRemove.bind(this);
         this._onRobotClick = this._onRobotClick.bind(this);
         this._onRobotRotate = this._onRobotRotate.bind(this);
         this._onRobotRemove = this._onRobotRemove.bind(this);
@@ -176,7 +175,7 @@ export class MapEditor {
         spriteSelector.setSpriteImage(this.image.src);
 
         const cellUl = container.querySelector<HTMLElement>('#cellList');
-        const cellList = new CellList(cellUl, this._onClick, this._onRotate, this._onRemove);
+        const cellList = new CellList(cellUl, this._onCellClick, this._onCellUpdate, this._onCellRemove);
         cellList.setSpriteImage(this.image.src);
 
         const addRobotButton = container.querySelector<HTMLElement>('#addRobotButton');
@@ -214,14 +213,14 @@ export class MapEditor {
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
     }
-    _onClick(event: CellEvent) {
+    _onCellClick = (event: CellEvent) => {
         this.selectSeedId(event.seedId);
     }
-    _onRemove(event: CellEvent) {
+    _onCellRemove = (event: CellEvent) => {
         this.removeCell(event.seedId);
         this.renderCanvas();
     }
-    _onRotate(event: CellEvent) {
+    _onCellUpdate = (event: CellEvent) => {
         this.updateCell(event);
         this.renderCanvas();
     }
@@ -276,6 +275,7 @@ export class MapEditor {
         this.formState.y = y;
         this._resetControls();
         this._updateCellList();
+        this._updateRobotList();
         this.renderCanvas();
     }
 
@@ -363,6 +363,8 @@ export class MapEditor {
         const seedId = (Date.now() & 0xffff) + (Math.round(Math.random() * 100) / 100);
         const cell: MapCell = {
             seedId,
+            speed: 0,
+            trackId: 0,
             spriteIndex: options.spriteIndex,
             rotation: 0,
             x: options.x,
@@ -436,11 +438,11 @@ export class MapEditor {
             for(let i = 0; i < dataLength;i+=4) {
                 if(imageData.data[i+3] !== 0 && data[index].imageData.data[i+3] !== 0) {
                     // Tracks intersect!
-                    if(imageData.data[i] < data[index].imageData.data[i]) {
+                    if(data[index].imageData.data[i] !== cell.speed) {
                         // We want to use the lower of speeds on track intersections
-                        data[index].imageData.data[i] = imageData.data[i];
+                        data[index].imageData.data[i] = 0;
                     }
-                    if(imageData.data[i+1] !== data[index].imageData.data[i+1]) {
+                    if(data[index].imageData.data[i+1] !== cell.trackId) {
                         // track_ids are different set 0 for all
                         data[index].imageData.data[i+1] = 0;
                     }
@@ -448,8 +450,8 @@ export class MapEditor {
                     // Alpha channels should be the same, no need to set
                     // data[index].imageData.data[i+3] |= imageData.data[i+3];
                 } else if(imageData.data[i+3] !== 0) {
-                    data[index].imageData.data[i] = imageData.data[i];
-                    data[index].imageData.data[i+1] = imageData.data[i+1];
+                    data[index].imageData.data[i] = cell.speed;
+                    data[index].imageData.data[i+1] = cell.trackId;
                     data[index].imageData.data[i+2] = imageData.data[i+2];
                     data[index].imageData.data[i+3] = imageData.data[i+3];
                 }

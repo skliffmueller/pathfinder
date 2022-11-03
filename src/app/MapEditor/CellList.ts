@@ -8,6 +8,8 @@ import {
 
 export type CellEvent = {
     seedId: number;
+    speed?: number;
+    trackId?: number;
     rotation?: number;
 };
 
@@ -21,24 +23,30 @@ export class CellList {
     spriteHeight: number;
 
     onClick: (event: CellEvent) => void;
-    onRotate: (event: CellEvent) => void;
+    onChange: (event: CellEvent) => void;
     onRemove: (event: CellEvent) => void;
 
     constructor(
         cellList: HTMLElement,
         onClick: (event: CellEvent) => void,
-        onRotate: (event: CellEvent) => void,
+        onChange: (event: CellEvent) => void,
         onRemove: (event: CellEvent) => void
     ) {
         this.cells = [];
         this.cellList = cellList;
         this.onClick = onClick;
-        this.onRotate = onRotate;
+        this.onChange = onChange;
         this.onRemove = onRemove;
         this.cellHTML = `
         <li class="flex justify-between px-2 py-3 border">
             <button id="rotateButton" class="inline-block bg-no-repeat"></button>
-            <button id="selectButton" class="inline-block"></button>
+            <div>
+                <label>Speed</label>
+                <input id="speedInput" class="w-14" type="number" min="0" max="255" />
+                <br />
+                <label>Track#</label>
+                <input id="trackIdInput" class="w-14" type="number" min="0" max="255" />
+            </div>
             <button id="removeButton" class="inline-block px-3 py-2 border">X</button>
         </li>
         `;
@@ -67,7 +75,8 @@ export class CellList {
         const li = temp.querySelector<HTMLElement>('li');
 
         const buttonRotation = li.querySelector<HTMLButtonElement>('#rotateButton');
-        const buttonSelect = li.querySelector<HTMLButtonElement>('#selectButton');
+        const speedInput = li.querySelector<HTMLButtonElement>('#speedInput');
+        const trackIdInput = li.querySelector<HTMLButtonElement>('#trackIdInput');
         const buttonRemove = li.querySelector<HTMLButtonElement>('#removeButton');
 
         buttonRotation.dataset.seedId = `${cell.seedId}`;
@@ -96,15 +105,33 @@ export class CellList {
         }
         buttonRotation.addEventListener('click', this._onRotationClick);
 
-        buttonSelect.dataset.seedId = `${cell.seedId}`;
-        buttonSelect.innerHTML = `${cell.seedId}`;
-        buttonSelect.addEventListener('click', this._onSelectClick);
+        speedInput.dataset.seedId = `${cell.seedId}`;
+        speedInput.value = `${cell.speed}`;
+        speedInput.addEventListener('change', this._onSpeedChange);
+
+        trackIdInput.dataset.seedId = `${cell.seedId}`;
+        trackIdInput.value = `${cell.trackId}`;
+        trackIdInput.addEventListener('change', this._onTrackIdChange);
 
         buttonRemove.dataset.seedId = `${cell.seedId}`;
         buttonRemove.innerHTML = 'X';
         buttonRemove.addEventListener('click', this._onRemoveClick);
 
         return li;
+    }
+
+    _onSpeedChange = (event: Event) => {
+        const speedInput = event.target as HTMLInputElement;
+        const seedId = parseFloat(speedInput.dataset.seedId);
+        const speed = parseInt(speedInput.value);
+        this.onChange({ seedId, speed });
+    }
+
+    _onTrackIdChange = (event: Event) => {
+        const trackIdInput = event.target as HTMLInputElement;
+        const seedId = parseFloat(trackIdInput.dataset.seedId);
+        const trackId = parseInt(trackIdInput.value);
+        this.onChange({ seedId, trackId });
     }
 
     _onRotationClick = (event: Event) => {
@@ -133,13 +160,7 @@ export class CellList {
         }
         buttonRotation.dataset.rotation = `${rotation}`;
 
-        this.onRotate({ seedId, rotation });
-    }
-
-    _onSelectClick = (event: Event) => {
-        const buttonSelect = event.target as HTMLElement;
-        const seedId = parseFloat(buttonSelect.dataset.seedId);
-        this.onClick({ seedId });
+        this.onChange({ seedId, rotation });
     }
 
     _onRemoveClick = (event: Event) => {
@@ -148,23 +169,25 @@ export class CellList {
         this.onRemove({ seedId });
 
         const li = buttonRemove.parentElement;
-        li.firstChild.removeEventListener('click', this._onRotationClick);
-        li.removeChild(li.firstChild);
-        li.firstChild.removeEventListener('click', this._onSelectClick);
-        li.removeChild(li.firstChild);
-        li.firstChild.removeEventListener('click', this._onRemoveClick);
-        li.removeChild(li.firstChild);
+        this._removeCellListeners(li);
         li.parentElement.removeChild(li);
+    }
+
+    _removeCellListeners = (li: HTMLElement) => {
+        const buttonRotation = li.querySelector<HTMLButtonElement>('#rotateButton');
+        const speedInput = li.querySelector<HTMLButtonElement>('#speedInput');
+        const trackIdInput = li.querySelector<HTMLButtonElement>('#trackIdInput');
+        const buttonRemove = li.querySelector<HTMLButtonElement>('#removeButton');
+
+        buttonRotation.removeEventListener('click', this._onRotationClick);
+        speedInput.removeEventListener('change', this._onSpeedChange);
+        trackIdInput.removeEventListener('change', this._onTrackIdChange);
+        buttonRemove.removeEventListener('click', this._onRemoveClick);
     }
 
     renderCells() {
         while(this.cellList.firstChild) {
-            this.cellList.firstChild.firstChild.removeEventListener('click', this._onRotationClick);
-            this.cellList.firstChild.removeChild(this.cellList.firstChild.firstChild);
-            this.cellList.firstChild.firstChild.removeEventListener('click', this._onSelectClick);
-            this.cellList.firstChild.removeChild(this.cellList.firstChild.firstChild);
-            this.cellList.firstChild.firstChild.removeEventListener('click', this._onRemoveClick);
-            this.cellList.firstChild.removeChild(this.cellList.firstChild.firstChild);
+            this._removeCellListeners(this.cellList.firstChild as HTMLElement);
             this.cellList.removeChild(this.cellList.firstChild);
         }
 
