@@ -1,7 +1,8 @@
 import testMapUrl from "../assets/path.png";
+import { CellEvent, CellList } from "./CellList";
+import { SpriteSelectorEvent, SpriteSelector } from "./SpriteSelector";
 
-
-interface MapCell {
+export interface MapCell {
     seedId: number;
     spriteIndex: number;
     rotation: number; // (rotation * 90deg)
@@ -9,7 +10,7 @@ interface MapCell {
     y: number;
 }
 
-interface MapCellOptions {
+export interface MapCellOptions {
     seedId?: number;
     spriteIndex?: number;
     rotation?: number; // (rotation * 90deg)
@@ -17,142 +18,27 @@ interface MapCellOptions {
     y?: number;
 }
 
-const CELL_WIDTH = 50;
-const CELL_HEIGHT = 50;
+export const CELL_WIDTH = 50;
+export const CELL_HEIGHT = 50;
 
-const SPRITE_WIDTH = 54;
-const SPRITE_HEIGHT = 54;
+export const SPRITE_WIDTH = 54;
+export const SPRITE_HEIGHT = 54;
 
-interface ControlInterfaces {
+export interface ControlInterfaces {
     xValue?: HTMLElement;
     yValue?: HTMLElement;
     addButton?: HTMLButtonElement;
     rotationButton?: HTMLButtonElement;
-    cellList?: HTMLElement;
+    cellList?: CellList;
     spriteSelector?: SpriteSelector;
 }
 
-interface FormState {
+export interface FormState {
     seedId: number;
     x: number;
     y: number;
     spriteIndex: number;
     rotation: number;
-}
-const controlsHTML = `
-<div class="MapEditor-Controls-coords">
-    <label>X:</label><span id="xValue">0</span>
-    <label>Y:</label><span id="yValue">0</span>
-</div>
-<div class="MapEditor-Controls-inputs">
-    <canvas id="spriteCanvas"></canvas>
-    <button id="rotationButton">0deg</button>
-</div>
-<div class="MapEditor-Controls-buttons">
-    <button id="addButton">Add</button>
-    <button id="removeButton">Remove</button>
-</div>
-<ul class="MapEditor-Controls-cellList" id="cellList"></ul>
-`;
-
-type SpriteSelectorEvent = {
-    x: number,
-    y: number,
-    index: number,
-};
-
-class SpriteSelector {
-    image: HTMLImageElement;
-    canvas: HTMLCanvasElement;
-    ctx: CanvasRenderingContext2D;
-
-    spriteWidth: number;
-    spriteHeight: number;
-
-    selectedEvent: SpriteSelectorEvent;
-
-    onClick: (event: SpriteSelectorEvent) => void;
-
-    constructor(canvas: HTMLCanvasElement, onClick: (event: SpriteSelectorEvent) => void) {
-        this.canvas = canvas;
-        this.ctx = this.canvas.getContext("2d");
-        this.onClick = onClick;
-        this._canvasOnClick = this._canvasOnClick.bind(this);
-        this.canvas.addEventListener('mousedown', this._canvasOnClick);
-        this.selectedEvent = {
-            x: 0,
-            y: 0,
-            index: 0,
-        };
-    }
-    setSpriteImage(imageUrl: string) {
-        this.image = new Image();
-        this.image.onload = () => {
-            if((this.image.width % SPRITE_WIDTH) !== 0 || (this.image.height % SPRITE_HEIGHT) !== 0) {
-                return;
-            }
-
-            this.spriteWidth = this.image.width / SPRITE_WIDTH;
-            this.spriteHeight = this.image.height / SPRITE_HEIGHT;
-
-            this.canvas.width = this.image.width;
-            this.canvas.height = this.image.height;
-
-            this.renderCanvas();
-        }
-        this.image.src = imageUrl;
-    }
-    setIndex(index: number) {
-        this.selectedEvent.x = index % this.spriteWidth;
-        this.selectedEvent.y = (index - this.selectedEvent.x) / this.spriteWidth;
-        this.selectedEvent.index = index;
-        this.renderCanvas();
-    }
-    _canvasOnClick(event: MouseEvent) {
-        const rect = this.canvas.getBoundingClientRect();
-        this.selectedEvent = {
-            x: Math.floor((event.clientX - rect.left) / SPRITE_WIDTH),
-            y: Math.floor((event.clientY - rect.top) / SPRITE_HEIGHT),
-            index: -1,
-        }
-        this.selectedEvent.index = (this.selectedEvent.y * this.spriteWidth) + this.selectedEvent.x;
-        this.renderCanvas();
-        this.onClick(this.selectedEvent);
-    }
-    renderCanvas() {
-        this.ctx.setTransform(1,0,0,1,0,0);
-        this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
-
-        this.ctx.drawImage(this.image, 0, 0);
-
-        this._drawGrid();
-        this._drawSelectBox();
-
-    }
-    _drawGrid() {
-        const xItter = this.canvas.width / SPRITE_WIDTH;
-        const yItter = this.canvas.height / SPRITE_HEIGHT;
-        this.ctx.strokeStyle = "rgba(0,255,255,72)";
-        for(let i = 0; i < xItter; i++) {
-            const xCoord = i * SPRITE_WIDTH;
-            this.ctx.beginPath();
-            this.ctx.moveTo(xCoord, 0);
-            this.ctx.lineTo(xCoord, this.canvas.height);
-            this.ctx.stroke();
-        }
-
-        for(let i = 0; i < yItter; i++) {
-            const yCoord = i * SPRITE_WIDTH;
-            this.ctx.beginPath();
-            this.ctx.moveTo(0, yCoord);
-            this.ctx.lineTo(this.canvas.width, yCoord);
-            this.ctx.stroke();
-        }
-    }
-    _drawSelectBox() {
-        this.ctx.strokeStyle = "rgba(0,0,255,255)";
-        this.ctx.strokeRect(this.selectedEvent.x * SPRITE_WIDTH, this.selectedEvent.y * SPRITE_HEIGHT, SPRITE_WIDTH, SPRITE_HEIGHT);
-    }
 }
 
 /*
@@ -163,11 +49,11 @@ class SpriteSelector {
  *      0x01 - announce name, "somestring", 0x00
  * a = (announce flag)
  */
-
 export class MapEditor {
     image: HTMLImageElement;
     canvas: HTMLCanvasElement;
     ctx: CanvasRenderingContext2D;
+    controlsHTML: string;
 
     width: number;
     height: number;
@@ -189,12 +75,13 @@ export class MapEditor {
         this.ctx = this.canvas.getContext("2d");
 
         this._canvasOnClick = this._canvasOnClick.bind(this);
-
         this._onSpriteSelectorClick = this._onSpriteSelectorClick.bind(this);
-        this._onRotationButtonClick = this._onRotationButtonClick.bind(this);
         this._onAddButtonClick = this._onAddButtonClick.bind(this);
-        this._onRemoveButtonClick = this._onRemoveButtonClick.bind(this);
-        this._onCellLinkClick = this._onCellLinkClick.bind(this);
+        this._onClick = this._onClick.bind(this);
+        this._onRotate = this._onRotate.bind(this);
+        this._onRemove = this._onRemove.bind(this);
+        this._onExportMap = this._onExportMap.bind(this);
+
 
         this.canvas.addEventListener('mousedown', this._canvasOnClick);
 
@@ -207,11 +94,46 @@ export class MapEditor {
         };
 
         this.cells = [];
+
+        this.controlsHTML = `
+    <div id="container" class="fixed px-2 py-3 top-0 right-0 h-screen w-64 border rounded">
+        <div class="my-2">
+            <label>Export</label><br />
+            <a id="exportMap" class="inline-block px-3 py-1 border rounded" href="#">Map</a>
+            <a id="exportRobots" class="inline-block px-3 py-1 border rounded" href="#">Robots</a>
+            <a id="exportPNG" class="inline-block px-3 py-1 border rounded" href="#">PNG</a>
+        </div>
+        <div class="my-2">
+            <label>Width:</label>
+            <input class="w-16" type="number" value="16" />
+            <label>Height:</label>
+            <input class="w-16" type="number" value="12" />
+        </div>
+        <div class="">
+            <label>X:</label><span id="xValue">0</span>
+            <label>Y:</label><span id="yValue">0</span>
+        </div>
+        <div class="flex justify-center p-2">
+            <canvas id="spriteCanvas"></canvas>
+        </div>
+        <div class="MapEditor-Controls-buttons">
+            <button class="border rounded px-3 py-1" id="addPathButton">Add Path</button>
+            <button class="border rounded px-3 py-1" id="addRobotButton">Add Robot</button>
+        </div>
+        <ul class="MapEditor-Controls-cellList" id="cellList"></ul>
+    </div>
+`;
     }
     createControls() {
-        const container = document.createElement('div');
-        container.classList.add('MapEditor-Controls')
-        container.innerHTML = controlsHTML;
+        const temp = document.createElement('div');
+        temp.innerHTML = this.controlsHTML;
+        const container = temp.querySelector<HTMLElement>('#container');
+
+        const downloadLink = container.querySelector<HTMLElement>('#exportPNG');
+        downloadLink.addEventListener('click', () => this.renderCanvas(true));
+
+        const exportMap = container.querySelector<HTMLElement>('#exportMap');
+        exportMap.addEventListener('click', this._onExportMap);
 
         const xValue = container.querySelector<HTMLElement>('#xValue');
         const yValue = container.querySelector<HTMLElement>('#yValue');
@@ -220,19 +142,16 @@ export class MapEditor {
         const spriteSelector = new SpriteSelector(spriteCanvas, this._onSpriteSelectorClick);
         spriteSelector.setSpriteImage(this.image.src);
 
-        const rotationButton = container.querySelector<HTMLButtonElement>('#rotationButton');
-        rotationButton.addEventListener('click', this._onRotationButtonClick);
-        const addButton = container.querySelector<HTMLButtonElement>('#addButton');
+        const addButton = container.querySelector<HTMLButtonElement>('#addPathButton');
         addButton.addEventListener('click', this._onAddButtonClick);
-        const removeButton = container.querySelector<HTMLButtonElement>('#removeButton');
-        removeButton.addEventListener('click', this._onRemoveButtonClick);
 
-        const cellList = container.querySelector<HTMLElement>('#cellList');
+        const ul = container.querySelector<HTMLElement>('#cellList');
+        const cellList = new CellList(ul, this._onClick, this._onRotate, this._onRemove);
+        cellList.setSpriteImage(this.image.src);
 
         this.controls = {
             xValue,
             yValue,
-            rotationButton,
             addButton,
             cellList,
             spriteSelector,
@@ -240,111 +159,66 @@ export class MapEditor {
 
         return container;
     }
-    _onRemoveButtonClick(event: MouseEvent) {
-        if(this.formState.seedId === -1) {
-            return;
-        }
-        this.removeCell(this.formState.seedId);
-        this.formState.seedId = -1;
-        this._updateCellList();
+    _onExportMap(event: Event) {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
+            cells: this.cells,
+            robots: [],
+        }));
+        let downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "map.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+    _onClick(event: CellEvent) {
+        this.selectSeedId(event.seedId);
+    }
+    _onRemove(event: CellEvent) {
+        this.removeCell(event.seedId);
+        this.renderCanvas();
+    }
+    _onRotate(event: CellEvent) {
+        this.updateCell(event);
         this.renderCanvas();
     }
     _onAddButtonClick(event: MouseEvent) {
-        this.formState = this.addCell(this.formState);
+        this.addCell(this.formState);
         this._updateCellList();
         this.renderCanvas();
     }
     _onSpriteSelectorClick(event: SpriteSelectorEvent) {
         this.formState.spriteIndex = event.index;
-        if(this.formState.seedId === -1) {
-            return;
-        }
-        this.updateCell({
-            seedId: this.formState.seedId,
-            spriteIndex: this.formState.spriteIndex,
-        });
-        this.renderCanvas();
-    }
-    _onRotationButtonClick(event: MouseEvent) {
-        this.formState.rotation += 1;
-        if(this.formState.rotation > 3) {
-            this.formState.rotation = 0;
-        }
-        this.controls.rotationButton.innerHTML = `${this.formState.rotation * 90}deg`;
-        if(this.formState.seedId === -1) {
-            return;
-        }
-        this.updateCell({
-            seedId: this.formState.seedId,
-            rotation: this.formState.rotation,
-        });
-        this.renderCanvas();
-    }
-
-    _onCellLinkClick(event: Event) {
-        event.preventDefault();
-        const a = event.target as HTMLElement;
-        const lis = a.parentElement.parentElement.querySelectorAll('li');
-        for(let i=0;i < lis.length;i++) {
-            lis[i].classList.remove('active');
-        }
-        a.parentElement.classList.add('active');
-        this.selectSeedId(parseFloat(a.dataset.seedId));
-        this._resetControls();
     }
 
     _updateCellList() {
-        while(this.controls.cellList.firstChild) {
-            this.controls.cellList.firstChild.firstChild.removeEventListener('click', this._onCellLinkClick);
-            this.controls.cellList.removeChild(this.controls.cellList.firstChild);
-        }
         const cells = this.findCellsAtCords(this.formState.x, this.formState.y);
-        cells.forEach(cell => {
-            const li = document.createElement('li');
-            const a = document.createElement('a');
-            a.href = "#";
-            a.innerHTML = `${cell.seedId}`;
-            a.dataset.seedId = `${cell.seedId}`;
-            a.addEventListener('click', this._onCellLinkClick);
-            if(cell.seedId === this.formState.seedId) {
-                li.classList.add('active');
-            }
-            li.appendChild(a);
-            this.controls.cellList.appendChild(li);
-        });
+        this.controls.cellList.updateCells(cells);
     }
     _resetControls() {
         this.controls.xValue.innerHTML = `${this.formState.x}`;
         this.controls.yValue.innerHTML = `${this.formState.y}`;
-        this.controls.rotationButton.innerHTML = `${this.formState.rotation * 90}deg`;
-        this.controls.spriteSelector.setIndex(this.formState.spriteIndex);
     }
     _canvasOnClick(event: MouseEvent) {
         const rect = this.canvas.getBoundingClientRect();
         const x = Math.floor((event.clientX - rect.left) / CELL_WIDTH);
         const y = Math.floor((event.clientY - rect.top) / CELL_WIDTH);
-        const cells = this.findCellsAtCords(x, y);
-        this.formState = {
-            seedId: -1,
-            x,
-            y,
-            spriteIndex: 0,
-            rotation: 0,
-        };
+        this.formState.x = x;
+        this.formState.y = y;
         this._resetControls();
         this._updateCellList();
         this.renderCanvas();
     }
 
     selectSeedId(seedId: number) {
-        const cell = this.cells.find((cell) => (cell.seedId === seedId));
-        if(cell) {
-            this.formState.seedId = cell.seedId;
-            this.formState.spriteIndex = cell.spriteIndex;
-            this.formState.rotation = cell.rotation;
-        } else {
-            this.formState.seedId = -1;
-        }
+        // const cell = this.cells.find((cell) => (cell.seedId === seedId));
+        // if(cell) {
+        //     this.formState.seedId = cell.seedId;
+        //     this.formState.spriteIndex = cell.spriteIndex;
+        //     this.formState.rotation = cell.rotation;
+        // } else {
+        //     this.formState.seedId = -1;
+        // }
     }
     setSpriteImage(imageUrl: string) {
         this.image = new Image();
@@ -442,11 +316,16 @@ export class MapEditor {
     findCellsAtCords(x: number, y: number): MapCell[] {
         return this.cells.filter(cell => (cell.x === x && cell.y === y));
     }
-    renderCanvas() {
+    renderCanvas(exportConfig?: boolean) {
         this.ctx.setTransform(1,0,0,1,0,0);
         this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
 
         this._drawCells();
+        if(exportConfig) {
+            const imageUrl = this.canvas.toDataURL('image/png').replace("image/png", "image/octet-stream");
+            window.open(imageUrl, '_blank');
+            return;
+        }
         this._drawGrid();
         this._drawSelectBox();
     }

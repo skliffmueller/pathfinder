@@ -1,14 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 body {
   background: #fff;
   color: #000;
   position: relative;
   display: flex;
 }
-//canvas {
-//  position: absolute;
-//  top: 0;
-//  left: 0;
-//}
+
 .MapEditor-Controls {
   border: solid 1px;
   padding: 6px 4px;

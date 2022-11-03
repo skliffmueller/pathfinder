@@ -2,7 +2,7 @@ import '../assets/index.scss';
 import { Floorplan } from "./floorplan";
 import { Robot } from "./robot";
 import { Line } from "./line";
-import { MapEditor } from "./map_editor";
+import { MapEditor } from "./MapEditor";
 import { add } from "../lib/math";
 
 import spriteImageUrl from "../assets/path_sprites.png";

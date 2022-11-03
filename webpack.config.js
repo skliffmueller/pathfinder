@@ -24,6 +24,22 @@ module.exports = {
                     "css-loader",
                     // Compiles Sass to CSS
                     "sass-loader",
+                    {
+                        loader: "postcss-loader",
+                        options: {
+                            postcssOptions: {
+                                plugins: [
+                                    require('postcss-import'),
+                                    require('postcss-preset-env')({
+                                        stage: 1,
+                                    }),
+                                    require('postcss-nesting'),
+                                    require('tailwindcss')(require('./tailwind.config.js')),
+                                    require('autoprefixer'),
+                                ]
+                            },
+                        }
+                    }
                 ],
             },
 
