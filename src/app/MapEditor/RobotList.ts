@@ -3,6 +3,7 @@ import {
     SPRITE_HEIGHT,
     MapRobot,
 } from "./index";
+import { HTMLView } from "../../lib/HTMLView";
 
 export type RobotEvent = {
     seedId: number;
@@ -23,16 +24,24 @@ const RobotItemHTML = `
         <div class="w-full" id="trackList"></div>
     </li>
 `;
+type RobotItemElementList = {
+    rotateButton: HTMLButtonElement;
+    addTrackButton: HTMLButtonElement;
+    trackIdInput: HTMLInputElement;
+    removeButton: HTMLButtonElement;
+    trackList: HTMLElement;
+}
 const RotationClassListLookup = [
     'rotate-0',
     'rotate-45',
+    'rotate-90',
     'rotate-135',
     'rotate-180',
     '-rotate-135',
     '-rotate-90',
     '-rotate-45'
 ];
-export class RobotItem {
+export class RobotItem extends HTMLView<RobotItemElementList> {
     seedId: number;
     rotation: number;
     trackIds: number[];
@@ -40,47 +49,32 @@ export class RobotItem {
     onChange: (event: RobotEvent) => void;
     onRemove: (event: RobotEvent) => void;
 
-    rootElement: HTMLElement;
-    rotateButton: HTMLButtonElement;
-    addTrackButton: HTMLButtonElement;
-    trackIdInput: HTMLInputElement;
-    removeButton: HTMLButtonElement;
-    trackList: HTMLElement;
-
     constructor(robot: MapRobot, imageUrl: string, onChange: (event: RobotEvent) => void, onRemove: (event: RobotEvent) => void) {
+        super(RobotItemHTML);
+
         this.seedId = robot.seedId;
         this.rotation = robot.rotation;
         this.trackIds = robot.trackIds;
         this.onChange = onChange;
         this.onRemove = onRemove;
 
-        const temp = document.createElement('div');
-        temp.innerHTML = RobotItemHTML;
-        this.rootElement = temp.querySelector<HTMLElement>('li');
+        this.childElements.rotateButton.style.width = `${SPRITE_WIDTH}px`;
+        this.childElements.rotateButton.style.height = `${SPRITE_HEIGHT}px`;
+        this.childElements.rotateButton.style.backgroundImage = `url(${imageUrl})`;
 
-        this.rotateButton = this.rootElement.querySelector<HTMLButtonElement>('#rotateButton');
-        this.addTrackButton = this.rootElement.querySelector<HTMLButtonElement>('#addTrackButton');
-        this.trackIdInput = this.rootElement.querySelector<HTMLInputElement>('#trackIdInput');
-        this.removeButton = this.rootElement.querySelector<HTMLButtonElement>('#removeButton');
-        this.trackList = this.rootElement.querySelector<HTMLElement>('#trackList');
-
-        this.rotateButton.style.width = `${SPRITE_WIDTH}px`;
-        this.rotateButton.style.height = `${SPRITE_HEIGHT}px`;
-        this.rotateButton.style.backgroundImage = `url(${imageUrl})`;
-
-        this.rotateButton.addEventListener('click', this._onRotateClick);
-        this.removeButton.addEventListener('click', this._onRemoveClick);
-        this.addTrackButton.addEventListener('click', this._onTrackClick);
+        this.childElements.rotateButton.addEventListener('click', this._onRotateClick);
+        this.childElements.removeButton.addEventListener('click', this._onRemoveClick);
+        this.childElements.addTrackButton.addEventListener('click', this._onTrackClick);
 
         this._addRotateButtonStyles();
         this._updateTrackList();
     }
     destroy = () => {
-        this.rotateButton.removeEventListener('click', this._onRotateClick);
-        this.removeButton.removeEventListener('click', this._onRemoveClick);
-        this.addTrackButton.removeEventListener('click', this._onTrackClick);
+        this.childElements.rotateButton.removeEventListener('click', this._onRotateClick);
+        this.childElements.removeButton.removeEventListener('click', this._onRemoveClick);
+        this.childElements.addTrackButton.removeEventListener('click', this._onTrackClick);
 
-        this.rootElement.removeChild(this.rootElement.firstChild);
+        super.destroy();
     }
     _onRotateClick = (event: Event) => {
         this._removeRotateButtonStyle();
@@ -99,11 +93,8 @@ export class RobotItem {
         this.destroy();
     }
     _onTrackClick = (event: Event) => {
-        console.log(this.trackIds);
-        this.trackIds.push(parseInt(this.trackIdInput.value));
-        console.log(this.trackIds);
+        this.trackIds.push(parseInt(this.childElements.trackIdInput.value));
         this.trackIds.sort((a, b) => (a - b));
-        console.log(this.trackIds);
         this.onChange({
             seedId: this.seedId,
             trackIds: this.trackIds,
@@ -121,9 +112,9 @@ export class RobotItem {
         this._updateTrackList();
     };
     _updateTrackList = () => {
-        while(this.trackList.firstChild) {
-            this.trackList.firstChild.removeEventListener('click', this._onTrackItemClick);
-            this.trackList.removeChild(this.trackList.firstChild);
+        while(this.childElements.trackList.firstChild) {
+            this.childElements.trackList.firstChild.removeEventListener('click', this._onTrackItemClick);
+            this.childElements.trackList.removeChild(this.childElements.trackList.firstChild);
         }
 
         this.trackIds.forEach((trackId) => {
@@ -132,14 +123,14 @@ export class RobotItem {
             button.innerHTML = `${trackId}`;
             button.dataset.trackId = `${trackId}`;
             button.addEventListener('click', this._onTrackItemClick);
-            this.trackList.appendChild(button);
+            this.childElements.trackList.appendChild(button);
         });
     }
     _removeRotateButtonStyle = () => {
-        this.rotateButton.classList.remove(RotationClassListLookup[this.rotation]);
+        this.childElements.rotateButton.classList.remove(RotationClassListLookup[this.rotation]);
     }
     _addRotateButtonStyles = () => {
-        this.rotateButton.classList.add(RotationClassListLookup[this.rotation]);
+        this.childElements.rotateButton.classList.add(RotationClassListLookup[this.rotation]);
     }
 }
 
