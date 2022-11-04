@@ -23,6 +23,7 @@ export interface MapCellOptions {
 export interface MapRobot {
     seedId: number;
     rotation: number; // (rotation * 45deg)
+    trackIds: number[];
     x: number;
     y: number;
 }
@@ -94,9 +95,6 @@ export class MapEditor {
         this._canvasOnClick = this._canvasOnClick.bind(this);
         this._onSpriteSelectorClick = this._onSpriteSelectorClick.bind(this);
         this._onAddRobotClick = this._onAddRobotClick.bind(this);
-        this._onRobotClick = this._onRobotClick.bind(this);
-        this._onRobotRotate = this._onRobotRotate.bind(this);
-        this._onRobotRemove = this._onRobotRemove.bind(this);
         this._onExportMap = this._onExportMap.bind(this);
 
         this.robotImage = new Image();
@@ -182,7 +180,7 @@ export class MapEditor {
         addRobotButton.addEventListener('click', this._onAddRobotClick);
 
         const robotUl = container.querySelector<HTMLElement>('#robotList');
-        const robotList = new RobotList(robotUl, this._onRobotClick, this._onRobotRotate, this._onRobotRemove);
+        const robotList = new RobotList(robotUl, this._onRobotChange, this._onRobotRemove);
         robotList.setSpriteImage(this.robotImage.src);
 
         this.controls = {
@@ -232,14 +230,11 @@ export class MapEditor {
         this._updateRobotList();
         this.renderCanvas();
     }
-    _onRobotClick(event: RobotEvent) {
-        // this.selectSeedId(event.seedId);
-    }
-    _onRobotRemove(event: RobotEvent) {
+    _onRobotRemove = (event: RobotEvent) => {
         this.removeRobot(event.seedId);
         this.renderCanvas();
     }
-    _onRobotRotate(event: RobotEvent) {
+    _onRobotChange = (event: RobotEvent) => {
         this.updateRobot(event);
         this.renderCanvas();
     }
@@ -392,6 +387,7 @@ export class MapEditor {
         const robot: MapRobot = {
             seedId,
             rotation: 0,
+            trackIds: [],
             x: options.x,
             y: options.y,
         };

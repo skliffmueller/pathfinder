@@ -1,6 +1,4 @@
 import {
-    CELL_WIDTH,
-    CELL_HEIGHT,
     SPRITE_WIDTH,
     SPRITE_HEIGHT,
     MapRobot,
@@ -9,36 +7,162 @@ import {
 export type RobotEvent = {
     seedId: number;
     rotation?: number;
+    trackIds?: number[];
 };
+
+const RobotItemHTML = `
+    <li class="px-2 py-3 border">
+        <div class="flex justify-between w-full">
+            <button id="rotateButton" class="inline-block bg-no-repeat bg-center bg-pyth-hyp">&nbsp;</button>
+            <div>
+                <input class="w-12" id="trackIdInput" type="number" min="1" max="255" value="1" />
+                <button id="addTrackButton" class="inline-block">Add Track</button>
+            </div>
+            <button id="removeButton" class="inline-block px-3 py-2 border">X</button>
+        </div>
+        <div class="w-full" id="trackList"></div>
+    </li>
+`;
+const RotationClassListLookup = [
+    'rotate-0',
+    'rotate-45',
+    'rotate-135',
+    'rotate-180',
+    '-rotate-135',
+    '-rotate-90',
+    '-rotate-45'
+];
+export class RobotItem {
+    seedId: number;
+    rotation: number;
+    trackIds: number[];
+
+    onChange: (event: RobotEvent) => void;
+    onRemove: (event: RobotEvent) => void;
+
+    rootElement: HTMLElement;
+    rotateButton: HTMLButtonElement;
+    addTrackButton: HTMLButtonElement;
+    trackIdInput: HTMLInputElement;
+    removeButton: HTMLButtonElement;
+    trackList: HTMLElement;
+
+    constructor(robot: MapRobot, imageUrl: string, onChange: (event: RobotEvent) => void, onRemove: (event: RobotEvent) => void) {
+        this.seedId = robot.seedId;
+        this.rotation = robot.rotation;
+        this.trackIds = robot.trackIds;
+        this.onChange = onChange;
+        this.onRemove = onRemove;
+
+        const temp = document.createElement('div');
+        temp.innerHTML = RobotItemHTML;
+        this.rootElement = temp.querySelector<HTMLElement>('li');
+
+        this.rotateButton = this.rootElement.querySelector<HTMLButtonElement>('#rotateButton');
+        this.addTrackButton = this.rootElement.querySelector<HTMLButtonElement>('#addTrackButton');
+        this.trackIdInput = this.rootElement.querySelector<HTMLInputElement>('#trackIdInput');
+        this.removeButton = this.rootElement.querySelector<HTMLButtonElement>('#removeButton');
+        this.trackList = this.rootElement.querySelector<HTMLElement>('#trackList');
+
+        this.rotateButton.style.width = `${SPRITE_WIDTH}px`;
+        this.rotateButton.style.height = `${SPRITE_HEIGHT}px`;
+        this.rotateButton.style.backgroundImage = `url(${imageUrl})`;
+
+        this.rotateButton.addEventListener('click', this._onRotateClick);
+        this.removeButton.addEventListener('click', this._onRemoveClick);
+        this.addTrackButton.addEventListener('click', this._onTrackClick);
+
+        this._addRotateButtonStyles();
+        this._updateTrackList();
+    }
+    destroy = () => {
+        this.rotateButton.removeEventListener('click', this._onRotateClick);
+        this.removeButton.removeEventListener('click', this._onRemoveClick);
+        this.addTrackButton.removeEventListener('click', this._onTrackClick);
+
+        this.rootElement.removeChild(this.rootElement.firstChild);
+    }
+    _onRotateClick = (event: Event) => {
+        this._removeRotateButtonStyle();
+        this.rotation++;
+        if(this.rotation > 7) {
+            this.rotation = 0;
+        }
+        this._addRotateButtonStyles();
+        this.onChange({
+            seedId: this.seedId,
+            rotation: this.rotation,
+        });
+    }
+    _onRemoveClick = (event: Event) => {
+        this.onRemove({ seedId: this.seedId });
+        this.destroy();
+    }
+    _onTrackClick = (event: Event) => {
+        console.log(this.trackIds);
+        this.trackIds.push(parseInt(this.trackIdInput.value));
+        console.log(this.trackIds);
+        this.trackIds.sort((a, b) => (a - b));
+        console.log(this.trackIds);
+        this.onChange({
+            seedId: this.seedId,
+            trackIds: this.trackIds,
+        });
+        this._updateTrackList();
+    }
+    _onTrackItemClick = (event: Event) => {
+        const buttonElement = event.target as HTMLButtonElement;
+        const trackId = parseInt(buttonElement.dataset.trackId);
+        this.trackIds = this.trackIds.filter((t) => (t !== trackId));
+        this.onChange({
+            seedId: this.seedId,
+            trackIds: this.trackIds,
+        });
+        this._updateTrackList();
+    };
+    _updateTrackList = () => {
+        while(this.trackList.firstChild) {
+            this.trackList.firstChild.removeEventListener('click', this._onTrackItemClick);
+            this.trackList.removeChild(this.trackList.firstChild);
+        }
+
+        this.trackIds.forEach((trackId) => {
+            const button = document.createElement('button');
+            button.classList.add('px-2', 'py-1', 'border', 'rounded');
+            button.innerHTML = `${trackId}`;
+            button.dataset.trackId = `${trackId}`;
+            button.addEventListener('click', this._onTrackItemClick);
+            this.trackList.appendChild(button);
+        });
+    }
+    _removeRotateButtonStyle = () => {
+        this.rotateButton.classList.remove(RotationClassListLookup[this.rotation]);
+    }
+    _addRotateButtonStyles = () => {
+        this.rotateButton.classList.add(RotationClassListLookup[this.rotation]);
+    }
+}
 
 export class RobotList {
     image: HTMLImageElement;
     robotList: HTMLElement;
-    robots: MapRobot[];
-    robotHTML: string;
 
-    onClick: (event: RobotEvent) => void;
-    onRotate: (event: RobotEvent) => void;
+    robots: MapRobot[];
+    robotItems: RobotItem[];
+
+    onChange: (event: RobotEvent) => void;
     onRemove: (event: RobotEvent) => void;
 
     constructor(
         robotList: HTMLElement,
-        onClick: (event: RobotEvent) => void,
-        onRotate: (event: RobotEvent) => void,
+        onChange: (event: RobotEvent) => void,
         onRemove: (event: RobotEvent) => void
     ) {
         this.robots = [];
+        this.robotItems = [];
         this.robotList = robotList;
-        this.onClick = onClick;
-        this.onRotate = onRotate;
+        this.onChange = onChange;
         this.onRemove = onRemove;
-        this.robotHTML = `
-        <li class="flex justify-between px-2 py-3 border">
-            <button id="rotateButton" class="inline-block bg-no-repeat bg-center bg-pyth-hyp"></button>
-            <button id="selectButton" class="inline-block"></button>
-            <button id="removeButton" class="inline-block px-3 py-2 border">X</button>
-        </li>
-        `;
     }
 
     setSpriteImage(imageUrl: string) {
@@ -51,139 +175,30 @@ export class RobotList {
         this.renderRobots();
     }
 
-    _createListItem(robot: MapRobot) {
-        const temp = document.createElement('div');
-        temp.innerHTML = this.robotHTML;
-        const li = temp.querySelector<HTMLElement>('li');
-
-        const buttonRotation = li.querySelector<HTMLButtonElement>('#rotateButton');
-        const buttonSelect = li.querySelector<HTMLButtonElement>('#selectButton');
-        const buttonRemove = li.querySelector<HTMLButtonElement>('#removeButton');
-
-        buttonRotation.dataset.seedId = `${robot.seedId}`;
-        buttonRotation.dataset.rotation = `${robot.rotation}`;
-        buttonRotation.style.backgroundImage = `url(${this.image.src})`;
-
-        buttonRotation.style.width = `${SPRITE_WIDTH}px`;
-        buttonRotation.style.height = `${SPRITE_HEIGHT}px`;
-        buttonRotation.innerHTML = `&nbsp;`;
-        switch(robot.rotation) {
-            case 1:
-                buttonRotation.classList.add('rotate-45');
-                break;
-            case 2:
-                buttonRotation.classList.add('rotate-90');
-                break;
-            case 3:
-                buttonRotation.classList.add('rotate-135');
-                break;
-            case 4:
-                buttonRotation.classList.add('rotate-180');
-                break;
-            case 5:
-                buttonRotation.classList.add('-rotate-135');
-                break;
-            case 6:
-                buttonRotation.classList.add('-rotate-90');
-                break;
-            case 7:
-                buttonRotation.classList.add('-rotate-45');
-                break;
-            default:
-                buttonRotation.classList.add('rotate-0');
-        }
-        buttonRotation.addEventListener('click', this._onRotationClick);
-
-        buttonSelect.dataset.seedId = `${robot.seedId}`;
-        buttonSelect.innerHTML = `${robot.seedId}`;
-        buttonSelect.addEventListener('click', this._onSelectClick);
-
-        buttonRemove.dataset.seedId = `${robot.seedId}`;
-        buttonRemove.innerHTML = 'X';
-        buttonRemove.addEventListener('click', this._onRemoveClick);
-
-        return li;
+    _onRobotItemChange = (event: RobotEvent) => {
+        const index = this.robots.findIndex(({ seedId }) => (seedId === event.seedId));
+        this.robots[index] = {
+            ...this.robots[index],
+            ...event,
+        };
+        this.onChange(event);
     }
 
-    _onRotationClick = (event: Event) => {
-        const buttonRotation = event.target as HTMLElement;
-        const seedId = parseFloat(buttonRotation.dataset.seedId);
-        let rotation = parseInt(buttonRotation.dataset.rotation) + 1;
-        if(rotation > 7) {
-            rotation = 0;
-        }
-        buttonRotation.classList.remove('rotate-0');
-        buttonRotation.classList.remove('rotate-45');
-        buttonRotation.classList.remove('rotate-90');
-        buttonRotation.classList.remove('rotate-135');
-        buttonRotation.classList.remove('rotate-180');
-        buttonRotation.classList.remove('-rotate-135');
-        buttonRotation.classList.remove('-rotate-90');
-        buttonRotation.classList.remove('-rotate-45');
-        switch(rotation) {
-            case 1:
-                buttonRotation.classList.add('rotate-45');
-                break;
-            case 2:
-                buttonRotation.classList.add('rotate-90');
-                break;
-            case 3:
-                buttonRotation.classList.add('rotate-135');
-                break;
-            case 4:
-                buttonRotation.classList.add('rotate-180');
-                break;
-            case 5:
-                buttonRotation.classList.add('-rotate-135');
-                break;
-            case 6:
-                buttonRotation.classList.add('-rotate-90');
-                break;
-            case 7:
-                buttonRotation.classList.add('-rotate-45');
-                break;
-            default:
-                buttonRotation.classList.add('rotate-0');
-        }
-        buttonRotation.dataset.rotation = `${rotation}`;
-
-        this.onRotate({ seedId, rotation });
+    _onRobotItemRemove = (event: RobotEvent) => {
+        this.robots = this.robots.filter(({ seedId }) => (seedId !== event.seedId));
+        this.onRemove(event);
     }
-
-    _onSelectClick = (event: Event) => {
-        const buttonSelect = event.target as HTMLElement;
-        const seedId = parseFloat(buttonSelect.dataset.seedId);
-        this.onClick({ seedId });
-    }
-
-    _onRemoveClick = (event: Event) => {
-        const buttonRemove = event.target as HTMLElement;
-        const seedId = parseFloat(buttonRemove.dataset.seedId);
-        this.onRemove({ seedId });
-
-        const li = buttonRemove.parentElement;
-        li.firstChild.removeEventListener('click', this._onRotationClick);
-        li.removeChild(li.firstChild);
-        li.firstChild.removeEventListener('click', this._onSelectClick);
-        li.removeChild(li.firstChild);
-        li.firstChild.removeEventListener('click', this._onRemoveClick);
-        li.removeChild(li.firstChild);
-        li.parentElement.removeChild(li);
-    }
-
     renderRobots() {
+        this.robotItems.forEach(robotItem => (robotItem.destroy()));
+        this.robotItems = [];
+
         while(this.robotList.firstChild) {
-            this.robotList.firstChild.firstChild.removeEventListener('click', this._onRotationClick);
-            this.robotList.firstChild.removeChild(this.robotList.firstChild.firstChild);
-            this.robotList.firstChild.firstChild.removeEventListener('click', this._onSelectClick);
-            this.robotList.firstChild.removeChild(this.robotList.firstChild.firstChild);
-            this.robotList.firstChild.firstChild.removeEventListener('click', this._onRemoveClick);
-            this.robotList.firstChild.removeChild(this.robotList.firstChild.firstChild);
             this.robotList.removeChild(this.robotList.firstChild);
         }
 
         this.robots.forEach((robot) => {
-            this.robotList.appendChild(this._createListItem(robot));
+            const robotItem = new RobotItem(robot, this.image.src, this._onRobotItemChange, this._onRobotItemRemove);
+            this.robotList.appendChild(robotItem.rootElement);
         });
     }
 }
