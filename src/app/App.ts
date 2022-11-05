@@ -16,10 +16,13 @@ type AppElements = {
 };
 
 const AppHTML = `
-    <div class="flex w-screen h-screen">
-        <div id="gameBoard"></div>
-        <div id="mapLoader"></div>
-        <div class="absolute top-800 left-0" id="robotDebugList"></div>
+    <div class="w-screen h-screen">
+        <a href="#editor" class="underline">Map Editor</a>
+        <div class="flex">
+            <div id="gameBoard"></div>
+            <div id="mapLoader"></div>
+            <div class="absolute top-800 left-0" id="robotDebugList"></div>
+        </div>
     </div>
 `;
 
@@ -35,11 +38,12 @@ export class App extends HTMLView<AppElements> {
 
         this.mapLoader.addElement(mapDataUrl);
 
+        this.mapLoader.loadUrl(mapDataUrl);
+
         this.childElements.mapLoader.appendChild(this.mapLoader.rootElement);
     }
 
     onLoad = (event: MapLoaderEvent) => {
-        console.log(event);
         const { mapData } = event;
         if(this.interval) {
             clearInterval(this.interval);

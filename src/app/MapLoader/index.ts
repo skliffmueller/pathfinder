@@ -1,5 +1,6 @@
 import {HTMLView} from "../../lib/HTMLView";
 import type { MapData } from "../../typings/map.d";
+import mapDataUrl from "../../assets/map.json";
 
 
 const MapItemHTML = `
@@ -78,7 +79,10 @@ export class MapLoader extends HTMLView<MapLoaderElements> {
     _onClick = (event: Event) => {
         event.preventDefault();
         const link = event.target as HTMLLinkElement;
-        const jsonUrl = link.href;
+        this.loadUrl(link.href);
+        return false;
+    }
+    loadUrl(jsonUrl: string) {
         fetch(jsonUrl)
             .then<MapData>((response) => response.json())
             .then((mapData ) => this.onLoad({
@@ -88,8 +92,6 @@ export class MapLoader extends HTMLView<MapLoaderElements> {
             .catch((e) => {
                 console.log(e);
             });
-
-        return false;
     }
     destroy() {
         this.mapItemElements.forEach((mapItem) => {

@@ -80,6 +80,7 @@ export class MapEditor {
         this.controlsHTML = `
             <div id="container">
                 <div class="my-2">
+                    <a href="#" class="underline">Game Board</a>
                     <a id="newMap" class="inline-block px-3 py-1 border rounded" href="#">New Map</a>
                 </div>
                 <div class="my-2">
