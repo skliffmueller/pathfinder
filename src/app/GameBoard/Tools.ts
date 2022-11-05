@@ -1,4 +1,4 @@
-import {Robot} from "./Robot";
+import { Robot } from "./Robot";
 
 export class RobotDebug {
     canvas: HTMLCanvasElement;

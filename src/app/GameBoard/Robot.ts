@@ -1,4 +1,4 @@
-import {MapRobot} from "../MapEditor";
+import type { MapCell, MapCellOptions, MapRobot, MapRobotOptions } from "../../typings/map.d";
 import { DEG_90, DEG_360 } from "../../constants";
 
 export class Robot {

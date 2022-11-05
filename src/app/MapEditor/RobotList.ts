@@ -1,8 +1,10 @@
 import {
     SPRITE_WIDTH,
     SPRITE_HEIGHT,
-    MapRobot,
 } from "./index";
+
+import type { MapRobot } from "../../typings/map.d";
+
 import { HTMLView } from "../../lib/HTMLView";
 
 export type RobotEvent = {

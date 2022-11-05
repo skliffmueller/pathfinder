@@ -3,8 +3,9 @@ import {
     CELL_HEIGHT,
     SPRITE_WIDTH,
     SPRITE_HEIGHT,
-    MapCell,
 } from "./index";
+
+import type { MapCell } from "../../typings/map.d";
 
 export type SpriteSelectorEvent = {
     x: number,

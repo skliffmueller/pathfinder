@@ -1,12 +1,12 @@
 import { HTMLView } from "../../lib/HTMLView";
-import { MapRobot } from "../MapEditor";
+import type { MapCell, MapCellOptions, MapRobot, MapRobotOptions } from "../../typings/map.d";
 import { Robot } from "./Robot";
 import { PathMap } from "./PathMap";
 
 import { DEG_90 } from "../../constants";
 
 const GameBoardHTML = `
-    <div class="relative w-screen h-screen">
+    <div class="relative">
         <canvas id="canvasMap" class="absolute top-0 left-0" width="800" width="600"></canvas>
         <canvas id="canvasRobot" class="absolute top-0 left-0" width="800" width="600"></canvas>
     </div>
@@ -29,6 +29,8 @@ export class GameBoard extends HTMLView<GameBoardElementsList> {
         this.canvas = this.childElements.canvasRobot;
         this.canvas.width = 800;
         this.canvas.height = 600;
+        this.rootElement.style.width = "800px";
+        this.rootElement.style.height = "600px";
         this.ctx = this.canvas.getContext("2d");
 
         this.robots = [];

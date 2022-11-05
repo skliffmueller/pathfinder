@@ -3,37 +3,7 @@ import { CellEvent, CellList } from "./CellList";
 import { RobotEvent, RobotList } from "./RobotList";
 import { SpriteSelectorEvent, SpriteSelector } from "./SpriteSelector";
 
-export interface MapCell {
-    seedId: number;
-    speed: number;
-    trackId: number;
-    spriteIndex: number;
-    rotation: number; // (rotation * 90deg)
-    x: number;
-    y: number;
-}
-export interface MapCellOptions {
-    seedId?: number;
-    spriteIndex?: number;
-    rotation?: number; // (rotation * 90deg)
-    x?: number;
-    y?: number;
-}
-
-export interface MapRobot {
-    seedId: number;
-    rotation: number; // (rotation * 45deg)
-    trackIds: number[];
-    x: number;
-    y: number;
-}
-
-export interface MapRobotOptions {
-    seedId?: number;
-    rotation?: number; // (rotation * 45deg)
-    x?: number;
-    y?: number;
-}
+import type { MapCell, MapCellOptions, MapRobot, MapRobotOptions } from "../../typings/map.d";
 
 export const CELL_WIDTH = 50;
 export const CELL_HEIGHT = 50;
@@ -108,38 +78,36 @@ export class MapEditor {
         this.initializeDefaults();
 
         this.controlsHTML = `
-    <div id="container" class="fixed bg-white px-2 py-3 top-0 right-0 h-screen max-h-screen w-64 border rounded overflow-y-scroll">
-        <div>
-            <div class="my-2">
-                <a id="newMap" class="inline-block px-3 py-1 border rounded" href="#">New Map</a>
+            <div id="container">
+                <div class="my-2">
+                    <a id="newMap" class="inline-block px-3 py-1 border rounded" href="#">New Map</a>
+                </div>
+                <div class="my-2">
+                    <label>Export</label><br />
+                    <a id="exportMap" class="inline-block px-3 py-1 border rounded" href="#">Map</a>
+                    <a id="exportRobots" class="inline-block px-3 py-1 border rounded" href="#">Robots</a>
+                    <a id="exportPNG" class="inline-block px-3 py-1 border rounded" href="#">PNG</a>
+                </div>
+                <div class="my-2">
+                    <label>Width:</label>
+                    <input class="w-16" type="number" value="16" />
+                    <label>Height:</label>
+                    <input class="w-16" type="number" value="12" />
+                </div>
+                <div class="">
+                    <label>X:</label><span id="xValue">0</span>
+                    <label>Y:</label><span id="yValue">0</span>
+                </div>
+                <div class="flex justify-center p-2">
+                    <canvas id="spriteCanvas"></canvas>
+                </div>
+                <div class="MapEditor-Controls-buttons">
+                    <button class="border rounded px-3 py-1" id="addRobotButton">Add Robot</button>
+                </div>
+                <ul class="MapEditor-Controls-cellList" id="robotList"></ul>
+                <ul class="MapEditor-Controls-cellList" id="cellList"></ul>
             </div>
-            <div class="my-2">
-                <label>Export</label><br />
-                <a id="exportMap" class="inline-block px-3 py-1 border rounded" href="#">Map</a>
-                <a id="exportRobots" class="inline-block px-3 py-1 border rounded" href="#">Robots</a>
-                <a id="exportPNG" class="inline-block px-3 py-1 border rounded" href="#">PNG</a>
-            </div>
-            <div class="my-2">
-                <label>Width:</label>
-                <input class="w-16" type="number" value="16" />
-                <label>Height:</label>
-                <input class="w-16" type="number" value="12" />
-            </div>
-            <div class="">
-                <label>X:</label><span id="xValue">0</span>
-                <label>Y:</label><span id="yValue">0</span>
-            </div>
-            <div class="flex justify-center p-2">
-                <canvas id="spriteCanvas"></canvas>
-            </div>
-            <div class="MapEditor-Controls-buttons">
-                <button class="border rounded px-3 py-1" id="addRobotButton">Add Robot</button>
-            </div>
-            <ul class="MapEditor-Controls-cellList" id="robotList"></ul>
-            <ul class="MapEditor-Controls-cellList" id="cellList"></ul>
-        </div>
-    </div>
-`;
+        `;
     }
     initializeDefaults() {
         this.cells = [];

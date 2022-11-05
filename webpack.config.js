@@ -5,7 +5,7 @@ module.exports = {
     entry: './src/app/index.ts',
     output: {
         path: `${__dirname}/dist`,
-        filename: 'app.bundle.js',
+        filename: '[name].bundle.js',
     },
     resolve: {
         // Add `.ts` and `.tsx` as a resolvable extension.
@@ -15,6 +15,16 @@ module.exports = {
         rules: [
             { test: /\.ts$/, use: 'ts-loader' },
             { test: /\.png$/, use: 'file-loader' },
+            {
+                test: /\.json$/,
+                type: "javascript/auto",
+                use: {
+                    loader: 'file-loader',
+                    options: {
+                        name: '[path][name].[ext]',
+                    },
+                },
+            },
             {
                 test: /\.s[ac]ss$/i,
                 use: [
@@ -45,5 +55,7 @@ module.exports = {
 
         ],
     },
-    plugins: [new HtmlWebpackPlugin()],
+    plugins: [new HtmlWebpackPlugin({
+        title: 'Pathfinder',
+    })],
 };
