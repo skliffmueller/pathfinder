@@ -375,11 +375,25 @@ export class MapEditor {
             return data;
         }, []);
 
+        const indexMap = [0,1,SPRITE_WIDTH-2,SPRITE_WIDTH-1];
         mergedData.forEach((cell) => {
             const x = (cell.x * CELL_WIDTH) - 2;
             const y = (cell.y * CELL_HEIGHT) - 2;
 
-            this.ctx.putImageData(cell.imageData, x, y, 0, 0, SPRITE_WIDTH, SPRITE_HEIGHT);
+            const currentImage = this.ctx.getImageData(x, y, SPRITE_WIDTH, SPRITE_HEIGHT);
+            const outputImage = this.ctx.createImageData(SPRITE_WIDTH, SPRITE_HEIGHT);
+
+            for(let yy = 0; yy < SPRITE_WIDTH;yy++) {
+                for(let xx = 0; xx < SPRITE_HEIGHT;xx++) {
+                    const index = (xx + (yy * SPRITE_WIDTH)) * 4;
+                    outputImage.data[index] = currentImage.data[index] | cell.imageData.data[index];
+                    outputImage.data[index+1] = currentImage.data[index+1] | cell.imageData.data[index+1];
+                    outputImage.data[index+2] = currentImage.data[index+2] | cell.imageData.data[index+2];
+                    outputImage.data[index+3] = currentImage.data[index+3] | cell.imageData.data[index+3];
+                }
+            }
+
+            this.ctx.putImageData(outputImage, x, y, 0, 0, SPRITE_WIDTH, SPRITE_HEIGHT);
         });
     }
     _drawRobots() {

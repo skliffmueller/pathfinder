@@ -1,10 +1,12 @@
 import {HTMLView} from "../lib/HTMLView";
 import {GameBoard} from "./GameBoard";
 import {MapLoader, MapLoaderEvent} from "./MapLoader";
-import mapDataUrl from "../assets/map.json";
 import robotImageUrl from "../assets/robot.png";
 import {MapRobot} from "../typings/map";
 import {RobotDebug, RobotStatus} from "./GameBoard/Tools";
+
+import mapDataDuoRaceUrl from "../assets/duo_race.json";
+import mapDataManyBotsUrl from "../assets/many_bots.json";
 
 type AppElements = {
 
@@ -36,15 +38,16 @@ export class App extends HTMLView<AppElements> {
     gameBoard: GameBoard;
     mapLoader: MapLoader;
     interval: NodeJS.Timer;
-
+    robotStatus: RobotStatus;
     constructor() {
         super(AppHTML);
 
         this.mapLoader = new MapLoader(this.onLoad);
 
-        this.mapLoader.addElement(mapDataUrl);
+        this.mapLoader.addElement(mapDataManyBotsUrl);
+        this.mapLoader.addElement(mapDataDuoRaceUrl);
 
-        this.mapLoader.loadUrl(mapDataUrl);
+        this.mapLoader.loadUrl(mapDataManyBotsUrl);
 
         this.childElements.mapLoader.appendChild(this.mapLoader.rootElement);
     }
@@ -64,8 +67,13 @@ export class App extends HTMLView<AppElements> {
         mapData.robots.forEach((robot: MapRobot) => {
             this.gameBoard.addBot(robot);
         })
-        const debug = new RobotStatus(this.gameBoard.robots as RobotDebug[]);
-        this.childElements.robotDebug.appendChild(debug.rootElement);
+
+        while(this.childElements.robotDebug.firstChild) {
+            this.childElements.robotDebug.removeChild(this.childElements.robotDebug.firstChild);
+        }
+
+        this.robotStatus = new RobotStatus(this.gameBoard.robots as RobotDebug[]);
+        this.childElements.robotDebug.appendChild(this.robotStatus.rootElement);
         this.interval = setInterval(() => this.tick(), 20);
     }
 

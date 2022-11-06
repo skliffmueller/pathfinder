@@ -54,28 +54,41 @@ export class Robot {
         let rightSpeed = -1;
         let leftBias = -1;
         let rightBias = -1;
+        let leftTrackBias = -1;
+        let rightTrackBias = -1;
         const halfLength = lineImage.width / 2;
         for(let i=0; i < halfLength; i++) {
             const leftIndex = (halfLength-1) - i;
             const gLeft = lineImage.data[(leftIndex*4)+1];
-            if(gLeft === 0 || this.trackIds.indexOf(gLeft) !== -1) {
+            if(leftBias === -1 && gLeft === 0) {
                 if(lineImage.data[(leftIndex*4)+3] > 0) {
                     leftBias = leftIndex;
+                }
+            }
+            if(leftTrackBias === -1 && this.trackIds.indexOf(gLeft) !== -1) {
+                if(lineImage.data[(leftIndex*4)+3] > 0) {
+                    leftTrackBias = leftIndex;
                 }
             }
 
             const rightIndex = halfLength + i;
             const gRight = lineImage.data[(rightIndex*4)+1];
-            if(gRight === 0 || this.trackIds.indexOf(gRight) !== -1) {
+            if(rightBias === -1 && gRight === 0) {
                 if(lineImage.data[(rightIndex*4)+3] > 0) {
                     rightBias = rightIndex;
                 }
             }
-            if(leftBias !== -1 || rightBias !== -1) {
-                break;
+            if(rightTrackBias === -1 && this.trackIds.indexOf(gRight) !== -1) {
+                if(lineImage.data[(rightIndex*4)+3] > 0) {
+                    rightTrackBias = rightIndex;
+                }
             }
         }
 
+        if(rightTrackBias !== -1 || leftTrackBias !== -1) {
+            leftBias = leftTrackBias;
+            rightBias = rightTrackBias;
+        }
         if(leftBias === -1) {
             leftBias = rightBias;
             // set left bias to right bias, then travel right till end and set to right bias
