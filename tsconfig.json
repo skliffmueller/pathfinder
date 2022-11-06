@@ -7,6 +7,10 @@
     "preserveConstEnums": true,
     "sourceMap": true
   },
+  "baseUrl": ".",
+  "paths": {
+    "heroicons": ["node_modules/heroicons/*"]
+  },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "**/*.spec.ts"]
+  "exclude": ["**/*.spec.ts"]
 }

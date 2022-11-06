@@ -1,10 +1,8 @@
-import testMapUrl from "../assets/path.png";
-
-export class Floorplan {
+export class PathMap {
     image: HTMLImageElement;
     canvas: HTMLCanvasElement;
     ctx: CanvasRenderingContext2D;
-    constructor(canvas: HTMLCanvasElement) {
+    constructor(canvas: HTMLCanvasElement, imageUrl: string) {
         this.canvas = canvas;
 
         this.canvas.width = 800;
@@ -17,7 +15,7 @@ export class Floorplan {
         this.image.onload = () => {
             this.ctx.drawImage(this.image, 0, 0);
         }
-        this.image.src = testMapUrl;
+        this.image.src = imageUrl;
     }
     readLine(startX: number, startY: number, endX: number, endY: number): ImageData {
         const cropX = startX < endX ? startX : endX;
@@ -28,7 +26,7 @@ export class Floorplan {
         const alphaPolarity = startX > endX ? -1 : 1;
         const betaPolarity = startY > endY ? -1 : 1;
 
-        const distance = Floorplan.distanceFormula(startX, startY, endX, endY);
+        const distance = PathMap.distanceFormula(startX, startY, endX, endY);
 
         const clipImage = this.ctx.getImageData(cropX, cropY, cropW, cropH);
         const lineImage = this.ctx.createImageData(distance, 1);

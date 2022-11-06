@@ -1,10 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 body {
-  background: #000;
-  color: #fff;
+  background: #fff;
+  color: #000;
   position: relative;
-}
-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
+  display: flex;
+  overflow: scroll;
 }
