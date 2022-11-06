@@ -16,6 +16,15 @@ module.exports = {
             { test: /\.ts$/, use: 'ts-loader' },
             { test: /\.png$/, use: 'file-loader' },
             {
+                test: /\.svg$/,
+                use: {
+                    loader: 'svg-inline-loader',
+                    options: {
+                        idPrefix: 'svg-'
+                    },
+                }
+            },
+            {
                 test: /\.json$/,
                 type: "javascript/auto",
                 use: {

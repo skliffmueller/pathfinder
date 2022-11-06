@@ -1,11 +1,7 @@
 import {
-    CELL_WIDTH,
-    CELL_HEIGHT,
     SPRITE_WIDTH,
     SPRITE_HEIGHT,
 } from "./index";
-
-import type { MapCell } from "../../typings/map.d";
 
 export type SpriteSelectorEvent = {
     x: number,
@@ -21,6 +17,8 @@ export class SpriteSelector {
     spriteWidth: number;
     spriteHeight: number;
 
+    hoverIndex: number;
+
     selectedEvent: SpriteSelectorEvent;
 
     onClick: (event: SpriteSelectorEvent) => void;
@@ -29,12 +27,13 @@ export class SpriteSelector {
         this.canvas = canvas;
         this.ctx = this.canvas.getContext("2d");
         this.onClick = onClick;
-        this._canvasOnClick = this._canvasOnClick.bind(this);
         this.canvas.addEventListener('mousedown', this._canvasOnClick);
+        this.canvas.addEventListener('mousemove', this._canvasOnMove);
+        this.canvas.addEventListener('mouseout', this._canvasOnOut);
         this.selectedEvent = {
             x: 0,
             y: 0,
-            index: 0,
+            index: -1,
         };
     }
     setSpriteImage(imageUrl: string) {
@@ -54,22 +53,26 @@ export class SpriteSelector {
         }
         this.image.src = imageUrl;
     }
-    setIndex(index: number) {
-        this.selectedEvent.x = index % this.spriteWidth;
-        this.selectedEvent.y = (index - this.selectedEvent.x) / this.spriteWidth;
-        this.selectedEvent.index = index;
-        this.renderCanvas();
+    _canvasOnClick = (event: MouseEvent) => {
+        this.onClick(this.selectedEvent);
     }
-    _canvasOnClick(event: MouseEvent) {
+    _canvasOnMove = (event: MouseEvent) => {
         const rect = this.canvas.getBoundingClientRect();
-        this.selectedEvent = {
+        const selectedEvent = {
             x: Math.floor((event.clientX - rect.left) / SPRITE_WIDTH),
             y: Math.floor((event.clientY - rect.top) / SPRITE_HEIGHT),
             index: -1,
         }
-        this.selectedEvent.index = (this.selectedEvent.y * this.spriteWidth) + this.selectedEvent.x;
+        selectedEvent.index = (selectedEvent.y * this.spriteWidth) + selectedEvent.x;
+
+        if(selectedEvent.index !== this.selectedEvent.index) {
+            this.selectedEvent = selectedEvent;
+            this.renderCanvas();
+        }
+    }
+    _canvasOnOut = (event: MouseEvent) => {
+        this.selectedEvent = { x:0, y:0, index: -1 };
         this.renderCanvas();
-        this.onClick(this.selectedEvent);
     }
     renderCanvas() {
         this.ctx.setTransform(1,0,0,1,0,0);
@@ -78,14 +81,14 @@ export class SpriteSelector {
         this.ctx.drawImage(this.image, 0, 0);
 
         this._drawGrid();
-        //this._drawSelectBox();
-
+        this._drawSelectBox();
     }
     _drawGrid() {
+        this.ctx.setTransform(1,0,0,1,0,0);
         const xItter = this.canvas.width / SPRITE_WIDTH;
         const yItter = this.canvas.height / SPRITE_HEIGHT;
         this.ctx.strokeStyle = "rgba(0,255,255,72)";
-        for(let i = 0; i < xItter; i++) {
+        for(let i = 0; i <= xItter; i++) {
             const xCoord = i * SPRITE_WIDTH;
             this.ctx.beginPath();
             this.ctx.moveTo(xCoord, 0);
@@ -93,7 +96,7 @@ export class SpriteSelector {
             this.ctx.stroke();
         }
 
-        for(let i = 0; i < yItter; i++) {
+        for(let i = 0; i <= yItter; i++) {
             const yCoord = i * SPRITE_WIDTH;
             this.ctx.beginPath();
             this.ctx.moveTo(0, yCoord);
@@ -102,7 +105,10 @@ export class SpriteSelector {
         }
     }
     _drawSelectBox() {
-        this.ctx.strokeStyle = "rgba(0,0,255,255)";
-        this.ctx.strokeRect(this.selectedEvent.x * SPRITE_WIDTH, this.selectedEvent.y * SPRITE_HEIGHT, SPRITE_WIDTH, SPRITE_HEIGHT);
+        if(this.selectedEvent.index !== -1) {
+            this.ctx.setTransform(1,0,0,1,0,0);
+            this.ctx.strokeStyle = "rgba(0,0,255,255)";
+            this.ctx.strokeRect(this.selectedEvent.x * SPRITE_WIDTH, this.selectedEvent.y * SPRITE_HEIGHT, SPRITE_WIDTH, SPRITE_HEIGHT);
+        }
     }
 }

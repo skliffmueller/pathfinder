@@ -13,7 +13,9 @@ type EditorElements = {
 const EditorHTML = `
     <div>
         <canvas class="mr-64" id="canvasMap"></canvas>
-        <div id="controls" class="fixed bg-white px-2 py-3 top-0 right-0 h-screen max-h-screen w-64 border rounded overflow-y-scroll"></div>
+        <div id="controls" class="fixed bg-white px-2 py-3 top-0 right-0 h-screen max-h-screen border rounded">
+        
+        </div>
     </div>
 `;
 

@@ -23,19 +23,16 @@ export class CellList {
     spriteWidth: number;
     spriteHeight: number;
 
-    onClick: (event: CellEvent) => void;
     onChange: (event: CellEvent) => void;
     onRemove: (event: CellEvent) => void;
 
     constructor(
         cellList: HTMLElement,
-        onClick: (event: CellEvent) => void,
         onChange: (event: CellEvent) => void,
         onRemove: (event: CellEvent) => void
     ) {
         this.cells = [];
         this.cellList = cellList;
-        this.onClick = onClick;
         this.onChange = onChange;
         this.onRemove = onRemove;
         this.cellHTML = `

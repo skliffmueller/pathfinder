@@ -7,6 +7,8 @@ import type { MapRobot } from "../../typings/map.d";
 
 import { HTMLView } from "../../lib/HTMLView";
 
+const PlusCircleSVG = require('heroicons/20/solid/plus-circle.svg');
+
 export type RobotEvent = {
     seedId: number;
     rotation?: number;
@@ -17,18 +19,21 @@ const RobotItemHTML = `
     <li class="px-2 py-3 border">
         <div class="flex justify-between w-full">
             <button id="rotateButton" class="inline-block bg-no-repeat bg-center bg-pyth-hyp">&nbsp;</button>
-            <div>
-                <input class="w-12" id="trackIdInput" type="number" min="1" max="255" value="1" />
-                <button id="addTrackButton" class="inline-block">Add Track</button>
+            <div class="flex px-2 py-1">
+                <input class="w-12 inline-block" id="trackIdInput" type="number" min="1" max="255" value="1" />
+                <button id="addTrackButton" class="inline-block"></button>
             </div>
             <button id="removeButton" class="inline-block px-3 py-2 border">X</button>
         </div>
-        <div class="w-full" id="trackList"></div>
+        <div id="trackList"></div>
+
+        
     </li>
 `;
 type RobotItemElementList = {
     rotateButton: HTMLButtonElement;
     addTrackButton: HTMLButtonElement;
+    addTrackIcon: SVGElement;
     trackIdInput: HTMLInputElement;
     removeButton: HTMLButtonElement;
     trackList: HTMLElement;
@@ -43,6 +48,9 @@ const RotationClassListLookup = [
     '-rotate-90',
     '-rotate-45'
 ];
+
+
+
 export class RobotItem extends HTMLView<RobotItemElementList> {
     seedId: number;
     rotation: number;
@@ -60,12 +68,18 @@ export class RobotItem extends HTMLView<RobotItemElementList> {
         this.onChange = onChange;
         this.onRemove = onRemove;
 
+
+
         this.childElements.rotateButton.style.width = `${SPRITE_WIDTH}px`;
         this.childElements.rotateButton.style.height = `${SPRITE_HEIGHT}px`;
         this.childElements.rotateButton.style.backgroundImage = `url(${imageUrl})`;
-
         this.childElements.rotateButton.addEventListener('click', this._onRotateClick);
+
         this.childElements.removeButton.addEventListener('click', this._onRemoveClick);
+
+        this.childElements.addTrackIcon = new HTMLView<{}, SVGElement>(PlusCircleSVG).rootElement;
+        this.childElements.addTrackIcon.classList.add('w-5', 'h-5');
+        this.childElements.addTrackButton.appendChild(this.childElements.addTrackIcon);
         this.childElements.addTrackButton.addEventListener('click', this._onTrackClick);
 
         this._addRotateButtonStyles();
@@ -121,12 +135,18 @@ export class RobotItem extends HTMLView<RobotItemElementList> {
 
         this.trackIds.forEach((trackId) => {
             const button = document.createElement('button');
-            button.classList.add('px-2', 'py-1', 'border', 'rounded');
+            button.classList.add('m-1', 'px-2', 'py-1', 'border', 'rounded');
             button.innerHTML = `${trackId}`;
             button.dataset.trackId = `${trackId}`;
             button.addEventListener('click', this._onTrackItemClick);
             this.childElements.trackList.appendChild(button);
         });
+        if(!this.trackIds.length) {
+            const span = document.createElement('span')
+            span.classList.add('inline-block', 'italic', 'px-2', 'py-1', 'border', 'rounded');
+            span.innerHTML = '(Track List Empty)';
+            this.childElements.trackList.appendChild(span);
+        }
     }
     _removeRotateButtonStyle = () => {
         this.childElements.rotateButton.classList.remove(RotationClassListLookup[this.rotation]);

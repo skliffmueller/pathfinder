@@ -1,29 +1,30 @@
-type NodeKeyList = {
-    [key:string]: Node
-};
+import { BaseEmitter } from "./BaseEmitter";
 
-export class HTMLView<T> {
+export class HTMLView<T, U = HTMLElement, V = {}> extends BaseEmitter<V> {
 
-    rootElement: HTMLElement;
+    rootElement: U;
     childElements: T;
 
     constructor(html: string) {
+        super();
         const temp = document.createElement('div');
         temp.innerHTML = html;
-        this.rootElement = temp.querySelector<HTMLElement>('*:first-child');
+        const rootElement = temp.querySelector('*:first-child');
+        this.rootElement = rootElement as U;
         this.childElements = {} as T;
-        const idElementList = this.rootElement.querySelectorAll('*[id]');
+        const idElementList = rootElement.querySelectorAll('*[id]');
         for(let i=0;i < idElementList.length;i++) {
             const id = idElementList[i].id;
             if(typeof id === 'string') {
-                idElementList[i].id = undefined;
+                idElementList[i].id = "";
                 // @ts-ignore
                 this.childElements[id] = idElementList[i];
             }
         }
+
     }
 
     destroy() {
-        this.rootElement.parentNode.removeChild(this.rootElement);
+        (this.rootElement as HTMLElement).parentNode.removeChild(this.rootElement as HTMLElement);
     }
 }

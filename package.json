@@ -15,6 +15,7 @@
   "license": "ISC",
   "devDependencies": {
     "@tsconfig/esm": "^1.0.2",
+    "@types/events": "^3.0.0",
     "autoprefixer": "^10.4.8",
     "css-loader": "^6.7.1",
     "file-loader": "^6.2.0",
@@ -35,5 +36,8 @@
     "webpack-cli": "^4.10.0",
     "webpack-typings-for-json": "^0.9.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "heroicons": "^2.0.13",
+    "svg-inline-loader": "^0.8.2"
+  }
 }
