@@ -4,6 +4,7 @@ import {MapLoader, MapLoaderEvent} from "./MapLoader";
 import mapDataUrl from "../assets/map.json";
 import robotImageUrl from "../assets/robot.png";
 import {MapRobot} from "../typings/map";
+import {RobotDebug, RobotStatus} from "./GameBoard/Tools";
 
 type AppElements = {
 
@@ -12,7 +13,7 @@ type AppElements = {
     canvasLine: HTMLCanvasElement;
     gameBoard: HTMLDivElement;
     mapLoader: HTMLDivElement;
-    robotDebugList: HTMLDivElement;
+    robotDebug: HTMLDivElement;
 };
 
 const AppHTML = `
@@ -26,6 +27,7 @@ const AppHTML = `
                 <a href="#editor" class="underline">Goto Map Editor</a>
             </div>
             <div id="mapLoader"></div>
+            <div id="robotDebug"></div>
         </div>
     </div>
 `;
@@ -62,6 +64,8 @@ export class App extends HTMLView<AppElements> {
         mapData.robots.forEach((robot: MapRobot) => {
             this.gameBoard.addBot(robot);
         })
+        const debug = new RobotStatus(this.gameBoard.robots as RobotDebug[]);
+        this.childElements.robotDebug.appendChild(debug.rootElement);
         this.interval = setInterval(() => this.tick(), 20);
     }
 

@@ -1,6 +1,7 @@
 import { HTMLView } from "../../lib/HTMLView";
 import type { MapCell, MapCellOptions, MapRobot, MapRobotOptions } from "../../typings/map.d";
 import { Robot } from "./Robot";
+import { RobotDebug } from "./Tools";
 import { PathMap } from "./PathMap";
 
 import { DEG_90 } from "../../constants";
@@ -42,7 +43,7 @@ export class GameBoard extends HTMLView<GameBoardElementsList> {
         this.map = new PathMap(this.childElements.canvasMap, imageUrl);
     }
     addBot(bot: MapRobot) {
-        const robot = new Robot(this.image.src);
+        const robot = new RobotDebug(this.image.src);
         robot.direction = (bot.rotation / 4) * Math.PI ;
         robot.x = (bot.x * 50) + 25;
         robot.y = (bot.y * 50) + 25;

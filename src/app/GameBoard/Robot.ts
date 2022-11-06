@@ -112,8 +112,8 @@ export class Robot {
         const distortion = rightBias - leftBias; // Higher distortion, the sharper we should turn, unless distortion > halfWidth
         if(distortion > halfLength) {
             // distortion above threshold just go straight
-            this.leftWheel = 0.1 * 0.5;
-            this.rightWheel = 0.1 * 0.5;
+            this.leftWheel = 0.3 * 0.5;
+            this.rightWheel = 0.3 * 0.5;
         } else {
             const centerIndex = leftBias + ((rightBias - leftBias) / 2);
             const percentCenter = Math.abs(centerIndex / lineImage.width);
