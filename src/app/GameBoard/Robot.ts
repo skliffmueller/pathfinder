@@ -8,8 +8,10 @@ export class Robot {
     rightWheel: number;
 
     direction: number; // 0 - (Math.PI * 2)
+    speed: number;
     x: number;
     y: number;
+    trackIds: number[];
 
     constructor(imageUrl: string) {
         this.direction = 0;
@@ -17,6 +19,8 @@ export class Robot {
         this.rightWheel = 0;
         this.leftWheel = 0.0;
         this.rightWheel = 0.0;
+        this.speed = 0.5;
+        this.trackIds = [];
         this.image = new Image();
         this.image.src = imageUrl;
     }
@@ -46,17 +50,26 @@ export class Robot {
     }
 
     calculateLineData(lineImage: ImageData) {
+        let leftSpeed = -1;
+        let rightSpeed = -1;
         let leftBias = -1;
         let rightBias = -1;
         const halfLength = lineImage.width / 2;
         for(let i=0; i < halfLength; i++) {
             const leftIndex = (halfLength-1) - i;
-            const rightIndex = halfLength + i;
-            if(lineImage.data[(leftIndex*4)+3] > 0) {
-                leftBias = leftIndex;
+            const gLeft = lineImage.data[(leftIndex*4)+1];
+            if(gLeft === 0 || this.trackIds.indexOf(gLeft) !== -1) {
+                if(lineImage.data[(leftIndex*4)+3] > 0) {
+                    leftBias = leftIndex;
+                }
             }
-            if(lineImage.data[(rightIndex*4)+3] > 0) {
-                rightBias = rightIndex;
+
+            const rightIndex = halfLength + i;
+            const gRight = lineImage.data[(rightIndex*4)+1];
+            if(gRight === 0 || this.trackIds.indexOf(gRight) !== -1) {
+                if(lineImage.data[(rightIndex*4)+3] > 0) {
+                    rightBias = rightIndex;
+                }
             }
             if(leftBias !== -1 || rightBias !== -1) {
                 break;
@@ -85,6 +98,15 @@ export class Robot {
                 break;
             }
             rightBias++;
+        }
+
+        let speedBias = -1;
+        for(let i = leftBias;i <= rightBias;i++) {
+            speedBias = Math.max(speedBias, lineImage.data[(i*4)]);
+        }
+
+        if(speedBias > 0) {
+            this.speed = speedBias / 255;
         }
 
         const distortion = rightBias - leftBias; // Higher distortion, the sharper we should turn, unless distortion > halfWidth
@@ -121,11 +143,11 @@ export class Robot {
         const directionSin = Math.sin(this.direction);
 
         // Rotation pivot points are at the wheels, so the center x/y coord will shift some distance on rotation
-        this.x += directionCos * (24 * (betaLength/2));
-        this.y += directionSin * (24 * (betaLength/2));
+        this.x += directionCos * ((50*this.speed) * (betaLength/2));
+        this.y += directionSin * ((50*this.speed) * (betaLength/2));
 
         // distance is most relative to current speed
-        this.x += directionCos * (24 * distance);
-        this.y += directionSin * (24 * distance);
+        this.x += directionCos * ((50*this.speed) * distance);
+        this.y += directionSin * ((50*this.speed) * distance);
     }
 }

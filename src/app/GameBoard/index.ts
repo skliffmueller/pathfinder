@@ -46,6 +46,7 @@ export class GameBoard extends HTMLView<GameBoardElementsList> {
         robot.direction = (bot.rotation / 4) * Math.PI ;
         robot.x = (bot.x * 50) + 25;
         robot.y = (bot.y * 50) + 25;
+        robot.trackIds = bot.trackIds;
         this.robots.push(robot);
     }
     calculateNextPosition() {
