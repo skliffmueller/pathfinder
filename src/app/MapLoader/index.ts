@@ -4,7 +4,7 @@ import mapDataUrl from "../../assets/map.json";
 
 
 const MapItemHTML = `
-    <li class="bg-zinc-500 px-2 py-1"><a href="#" class="underline text-zinc-100" id="link"></a></li>
+    <li class="py-1"><a href="#" class="underline" id="link"></a></li>
 `;
 
 type MapItemElements = {
@@ -12,20 +12,31 @@ type MapItemElements = {
 }
 
 const MapLoaderHTML = `
-    <div class="bg-zinc-600 text-zinc-100 px-2 py-3 w-48">
-        <span>Import JSON <input type="file" id="importInput" accept=".json" /></span>
-        <button id="autosaveButton" class="border rounded px-2 py-1">Load Autosave</button>
-        <ul id="mapList"></ul>
+    <div class="px-2 py-3 w-64">
+        <div class="my-2">Current Map: <br /><span id="currentMap">&nbsp;</span></div>
+        <div class="flex justify-between">
+            <button id="importButton" class="px-3 py-1 border rounded">Import JSON</button>
+            <input class="hidden" type="file" id="importInput" accept=".json" />
+            <button id="autosaveButton" class="border rounded px-2 py-1">Load Autosave</button>
+        </div>
+        <div id="mapListContainer" class="my-2 hidden">
+            <label>Examples:</label>
+            <ul id="mapList"></ul>
+        </div>
     </div>
 `;
 
 type MapLoaderElements = {
     mapList: HTMLUListElement;
+    mapListContainer: HTMLDivElement;
+    currentMap: HTMLSpanElement;
+    importButton: HTMLButtonElement;
     importInput: HTMLInputElement;
     autosaveButton: HTMLButtonElement;
 }
 
 export type MapLoaderEvent = {
+    fileName: string;
     jsonUrl: string;
     mapData: MapData
 };
@@ -40,7 +51,8 @@ export class MapLoader extends HTMLView<MapLoaderElements> {
         this.mapItemElements = [];
         this.onLoad = onLoad;
 
-        this.childElements.importInput.addEventListener('change', this._onImport);
+        this.childElements.importButton.addEventListener('click', this._onImportButton);
+        this.childElements.importInput.addEventListener('change', this._onImportFile);
         this.childElements.autosaveButton.addEventListener('click', this._onAutosave);
     }
     addElement(jsonUrl: string) {
@@ -50,27 +62,37 @@ export class MapLoader extends HTMLView<MapLoaderElements> {
         mapItem.childElements.link.addEventListener('click', this._onClick);
         this.childElements.mapList.appendChild(mapItem.rootElement);
         this.mapItemElements.push(mapItem);
+        if(this.childElements.mapListContainer.classList.contains('hidden')) {
+            this.childElements.mapListContainer.classList.remove('hidden');
+        }
     }
     removeElement(jsonUrl: string) {
         const index = this.mapItemElements.findIndex((mapItem) => (mapItem.childElements.link.href === jsonUrl));
         this.mapItemElements[index].childElements.link.removeEventListener('click', this._onClick);
         this.mapItemElements[index].destroy();
         this.mapItemElements.splice(index, 1);
+        if(!this.mapItemElements.length) {
+            this.childElements.mapListContainer.classList.add('hidden');
+        }
     }
-    _onImport = (event: Event) => {
-        console.log(event);
+    _onImportButton = (event: Event) => {
+        this.childElements.importInput.click();
+    };
+    _onImportFile = (event: Event) => {
         const input = event.target as HTMLInputElement;
         const jsonFile = input.files[0];
         jsonFile.text()
-            .then(jsonString => this.onLoad({
-                jsonUrl:"file://",
+            .then(jsonString => this._onLoad({
+                fileName: jsonFile.name,
+                jsonUrl: `file://./${jsonFile.name}`,
                 mapData: JSON.parse(jsonString),
             }))
     }
     _onAutosave = (event: Event) => {
         const jsonString = localStorage.getItem('_autosave');
         if(jsonString) {
-            this.onLoad({
+            this._onLoad({
+                fileName: '(autosave)',
                 jsonUrl:"localstorage://",
                 mapData: JSON.parse(jsonString),
             })
@@ -82,16 +104,28 @@ export class MapLoader extends HTMLView<MapLoaderElements> {
         this.loadUrl(link.href);
         return false;
     }
+    _onLoad = (event: MapLoaderEvent) => {
+        this.childElements.currentMap.innerHTML = encodeURIComponent(event.fileName);
+        this.onLoad(event);
+    }
+    autosave(mapData: MapData) {
+        const jsonString = JSON.stringify(mapData);
+        localStorage.setItem('_autosave', jsonString);
+    }
     loadUrl(jsonUrl: string) {
         fetch(jsonUrl)
             .then<MapData>((response) => response.json())
-            .then((mapData ) => this.onLoad({
+            .then((mapData ) => this._onLoad({
+                fileName: jsonUrl.split('/').pop(),
                 jsonUrl,
                 mapData,
             }))
             .catch((e) => {
                 console.log(e);
             });
+    }
+    loadAutosave() {
+        this._onAutosave({} as Event);
     }
     destroy() {
         this.mapItemElements.forEach((mapItem) => {

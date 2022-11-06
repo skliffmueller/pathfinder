@@ -33,6 +33,7 @@ export class Editor extends HTMLView<EditorElements> {
         mapEditor.setSpriteImage(spriteImageUrl);
         const controls = mapEditor.createControls();
         this.childElements.controls.appendChild(controls);
+
         mapEditor.renderCanvas();
     }
 }

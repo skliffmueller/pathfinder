@@ -17,11 +17,15 @@ type AppElements = {
 
 const AppHTML = `
     <div class="w-screen h-screen">
-        <a href="#editor" class="underline">Map Editor</a>
         <div class="flex">
             <div id="gameBoard"></div>
-            <div id="mapLoader"></div>
             <div class="absolute top-800 left-0" id="robotDebugList"></div>
+        </div>
+        <div class="fixed bg-white px-2 py-3 top-0 right-0 h-screen max-h-screen border rounded">
+            <div class="text-right px-2 py-1">
+                <a href="#editor" class="underline">Goto Map Editor</a>
+            </div>
+            <div id="mapLoader"></div>
         </div>
     </div>
 `;

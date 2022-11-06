@@ -5,6 +5,8 @@ import { SpriteSelectorEvent, SpriteSelector } from "./SpriteSelector";
 import { EditorControls } from "./Controls";
 
 import type { MapCell, MapCellOptions, MapRobot, MapRobotOptions } from "../../typings/map.d";
+import {MapLoader, MapLoaderEvent} from "../MapLoader";
+import {GameBoard} from "../GameBoard";
 
 export const CELL_WIDTH = 50;
 export const CELL_HEIGHT = 50;
@@ -54,11 +56,17 @@ export class MapEditor {
 
     formState: FormState;
 
+    mapLoader: MapLoader;
+
     constructor(canvas: HTMLCanvasElement, width: number, height: number) {
         this.canvas = canvas;
         this.canvas.width = width;
         this.canvas.height = height;
         this.ctx = this.canvas.getContext("2d");
+
+        this.initializeDefaults();
+
+        this.mapLoader = new MapLoader(this.onLoad);
 
         this.robotImage = new Image();
         this.robotImage.onload = () => {
@@ -67,9 +75,17 @@ export class MapEditor {
         this.robotImage.src = robotImageUrl;
 
         this.canvas.addEventListener('mousedown', this._canvasOnClick);
-
-        this.initializeDefaults();
     }
+
+    onLoad = (event: MapLoaderEvent) => {
+        const { mapData } = event;
+
+        this.cells = mapData.cells;
+        this.robots = mapData.robots;
+
+        this.renderCanvas();
+    }
+
     initializeDefaults() {
         this.cells = [];
         this.robots = [];
@@ -81,7 +97,7 @@ export class MapEditor {
         this.height = 12;
     }
     createControls() {
-        this.controls = new EditorControls(this.image.src, this.robotImage.src);
+        this.controls = new EditorControls(this.image.src, this.robotImage.src, this.mapLoader);
 
         this.controls.on('addCell', this._onAddCell);
         this.controls.on('removeCell', this._onRemoveCell);
@@ -98,7 +114,7 @@ export class MapEditor {
     }
     _onNewMap = (event: Event) => {
         event.preventDefault();
-        window.localStorage.removeItem('MapEditor_autosave');
+        window.localStorage.removeItem('_autosave');
         this.initializeDefaults();
         this._resetControls();
         this.renderCanvas();
@@ -245,6 +261,8 @@ export class MapEditor {
                 const clipImage = ctx.getImageData(cropY * SPRITE_WIDTH, ((cellWidth-1) - cropX) * SPRITE_HEIGHT, SPRITE_WIDTH, SPRITE_HEIGHT);
                 this.sprites[i].push(clipImage);
             }
+
+            this.mapLoader.loadAutosave();
         }
         this.image.src = imageUrl;
     }
@@ -303,17 +321,24 @@ export class MapEditor {
         return this.robots.filter(robot => (robot.x === x && robot.y === y));
     }
 
-    renderCanvas(exportConfig?: boolean): string | void {
+    renderCanvas(exportConfig?: boolean): string {
         this.ctx.setTransform(1,0,0,1,0,0);
         this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
 
         this._drawCells();
-        if(exportConfig) {
-            return this.canvas.toDataURL('image/png');
-        }
+        const mapImage = this.canvas.toDataURL('image/png');
+
         this._drawRobots();
         this._drawGrid();
         this._drawSelectBox();
+        if(this.robots.length || this.cells.length) {
+            this.mapLoader.autosave({
+                robots: this.robots,
+                cells: this.cells,
+                map: mapImage,
+            });
+        }
+        return mapImage;
     }
     _drawCells() {
         this.ctx.setTransform(1,0,0,1,0,0);

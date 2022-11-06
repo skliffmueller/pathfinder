@@ -3,6 +3,7 @@ import {SpriteSelector, SpriteSelectorEvent} from "./SpriteSelector";
 import {CellEvent, CellList} from "./CellList";
 import {RobotEvent, RobotList} from "./RobotList";
 import {MapCell, MapRobot} from "../../typings/map";
+import {MapLoader} from "../MapLoader";
 
 const ArrowRightCircleSVG = require('heroicons/24/outline/arrow-right-on-rectangle.svg')
 
@@ -15,6 +16,7 @@ const ControlsHTML = `
         <div class="text-right px-2 py-1">
             <a href="#" class="underline">Back to Game Board</a>
         </div>
+        <div id="mapLoader"></div>
         <div class="flex justify-between px-2 py-2">
             <a id="exportButton" class="inline-block px-3 py-1 border rounded" href="#">Export Map</a>
             <a id="newMapButton" class="inline-block px-3 py-1 border rounded" href="#">New Map</a>
@@ -40,6 +42,7 @@ const ControlsHTML = `
 type ControlsElements = {
     expandButton: HTMLButtonElement;
     expandIcon: SVGElement;
+    mapLoader: HTMLDivElement;
     newMapButton: HTMLButtonElement;
     exportButton: HTMLButtonElement;
     addRobotButton: HTMLButtonElement;
@@ -64,8 +67,11 @@ export class EditorControls extends HTMLView<ControlsElements, HTMLDivElement, C
     robotList: RobotList;
     cellList: CellList;
 
-    constructor(spriteImageUrl: string, robotImageUrl: string) {
+    constructor(spriteImageUrl: string, robotImageUrl: string, mapLoader: MapLoader) {
         super(ControlsHTML);
+
+        this.childElements.mapLoader.appendChild(mapLoader.rootElement);
+
         this.childElements.expandIcon = new HTMLView<{}, SVGElement>(ArrowRightCircleSVG).rootElement;
         this.childElements.expandIcon.classList.add('w-8', 'h-8');
         this.childElements.expandButton.appendChild(this.childElements.expandIcon);
