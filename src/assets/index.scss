@@ -9,14 +9,3 @@ body {
   display: flex;
   overflow: scroll;
 }
-
-.MapEditor-Controls {
-  border: solid 1px;
-  padding: 6px 4px;
-  .MapEditor-Controls-cellList {
-    list-style:none;
-    li.active {
-      border: solid 1px;
-    }
-  }
-}
