@@ -7,6 +7,7 @@ import { EditorControls } from "./Controls";
 import type { MapCell, MapCellOptions, MapRobot, MapRobotOptions } from "../../typings/map.d";
 import {MapLoader, MapLoaderEvent} from "../MapLoader";
 import {GameBoard} from "../GameBoard";
+import {DEG_90} from "../../constants";
 
 export const CELL_WIDTH = 50;
 export const CELL_HEIGHT = 50;
@@ -393,7 +394,7 @@ export class MapEditor {
             const x = (robot.x * CELL_WIDTH) + halfCellWidth;
             const y = (robot.y * CELL_HEIGHT) + halfCellHeight;
             this.ctx.setTransform(1, 0, 0, 1, x, y);
-            this.ctx.rotate( robot.rotation * quarterPi );
+            this.ctx.rotate( (robot.rotation * quarterPi) + DEG_90 );
             this.ctx.drawImage(this.robotImage, halfRobotWidth, halfRobotHeight);
         });
         this.ctx.globalAlpha = 1;

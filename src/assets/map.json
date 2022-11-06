@@ -544,7 +544,7 @@
   "robots": [
     {
       "seedId": 12571.66,
-      "rotation": 2,
+      "rotation": 0,
       "trackIds": [
         1
       ],
@@ -553,7 +553,7 @@
     },
     {
       "seedId": 29316.93,
-      "rotation": 2,
+      "rotation": 0,
       "trackIds": [
         2
       ],

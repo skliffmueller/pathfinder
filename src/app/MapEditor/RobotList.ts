@@ -39,14 +39,14 @@ type RobotItemElementList = {
     trackList: HTMLElement;
 }
 const RotationClassListLookup = [
-    'rotate-0',
-    'rotate-45',
     'rotate-90',
     'rotate-135',
     'rotate-180',
     '-rotate-135',
     '-rotate-90',
-    '-rotate-45'
+    '-rotate-45',
+    'rotate-0',
+    'rotate-45',
 ];
 
 
