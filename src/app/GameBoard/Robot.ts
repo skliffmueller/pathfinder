@@ -1,12 +1,21 @@
 import type { MapCell, MapCellOptions, MapRobot, MapRobotOptions } from "../../typings/map.d";
 import { DEG_90, DEG_360 } from "../../constants";
 
+type RobotDetectionPaths = {
+    startIndex: number;
+    endIndex: number;
+    percentCenter: number;
+    trackId: number;
+    speed: number;
+}
+
 export class Robot {
     image: HTMLImageElement;
 
     leftWheel: number;
     rightWheel: number;
 
+    lastCenterIndex: number;
     direction: number; // 0 - (Math.PI * 2)
     speed: number;
     x: number;
@@ -14,6 +23,7 @@ export class Robot {
     trackIds: number[];
 
     constructor(imageUrl: string) {
+        this.lastCenterIndex = -1;
         this.direction = 0;
         this.leftWheel = 0;
         this.rightWheel = 0;
@@ -49,98 +59,93 @@ export class Robot {
         }
     }
 
+    _findPaths(lineImage: ImageData): RobotDetectionPaths[] {
+        const detectionPaths: RobotDetectionPaths[] = [];
+        let detectionPath:RobotDetectionPaths = null;
+        for(let x=0;x < lineImage.width;x++) {
+            const i = x * 4;
+            if(lineImage.data[i+3] > 0) {
+                const trackId = lineImage.data[i+1];
+
+                if(detectionPath && trackId !== detectionPath.trackId) {
+                    detectionPath.endIndex = x;
+                    detectionPaths.push({...detectionPath});
+                    detectionPath = null;
+                }
+                if(!detectionPath && (trackId === 0 || this.trackIds.indexOf(trackId) !== -1)) {
+                    detectionPath = {
+                        startIndex: x,
+                        endIndex: -1,
+                        percentCenter: -1,
+                        trackId,
+                        speed: -1,
+                    }
+                }
+            } else if(detectionPath) {
+                detectionPath.endIndex = x;
+                detectionPaths.push({...detectionPath});
+                detectionPath = null;
+            }
+        }
+
+        if(detectionPath) {
+            detectionPath.endIndex = lineImage.width - 1;
+            detectionPaths.push({...detectionPath});
+            detectionPath = null;
+        }
+
+        return detectionPaths.map((path) => {
+            const diff = path.endIndex - path.startIndex;
+            const adjWidth = lineImage.width - diff;
+            path.percentCenter = (path.startIndex - 1) / adjWidth;
+
+
+            const speeds = [];
+            for(let x=path.startIndex;x <= path.endIndex;x++) {
+                const i = x * 4;
+                speeds.push(lineImage.data[i]);
+            }
+            path.speed = Math.max.apply(null, speeds);
+            return path;
+        });
+    }
+
     calculateLineData(lineImage: ImageData) {
-        let leftSpeed = -1;
-        let rightSpeed = -1;
-        let leftBias = -1;
-        let rightBias = -1;
-        let leftTrackBias = -1;
-        let rightTrackBias = -1;
-        const halfLength = lineImage.width / 2;
-        for(let i=0; i < halfLength; i++) {
-            const leftIndex = (halfLength-1) - i;
-            const gLeft = lineImage.data[(leftIndex*4)+1];
-            if(leftBias === -1 && gLeft === 0) {
-                if(lineImage.data[(leftIndex*4)+3] > 0) {
-                    leftBias = leftIndex;
+        const robotPaths = this._findPaths(lineImage);
+
+        const centerPath = robotPaths.length ? robotPaths.sort((a, b) => {
+            if(a.trackId > b.trackId) {
+                return -1;
+            } else if(a.trackId < b.trackId) {
+                return 1;
+            }
+
+            return Math.abs(a.percentCenter - this.lastCenterIndex) - Math.abs(b.percentCenter - this.lastCenterIndex);
+        })[0] : null;
+        if(centerPath) {
+
+            const { startIndex, endIndex, percentCenter, speed } = centerPath;
+            if(percentCenter > 0 && percentCenter < 1) {
+
+                this.lastCenterIndex = percentCenter;
+                if(speed > 0) {
+                    this.speed = speed / 255;
                 }
-            }
-            if(leftTrackBias === -1 && this.trackIds.indexOf(gLeft) !== -1) {
-                if(lineImage.data[(leftIndex*4)+3] > 0) {
-                    leftTrackBias = leftIndex;
-                }
-            }
 
-            const rightIndex = halfLength + i;
-            const gRight = lineImage.data[(rightIndex*4)+1];
-            if(rightBias === -1 && gRight === 0) {
-                if(lineImage.data[(rightIndex*4)+3] > 0) {
-                    rightBias = rightIndex;
-                }
-            }
-            if(rightTrackBias === -1 && this.trackIds.indexOf(gRight) !== -1) {
-                if(lineImage.data[(rightIndex*4)+3] > 0) {
-                    rightTrackBias = rightIndex;
-                }
-            }
-        }
+                this.leftWheel = Math.sin(DEG_90 * percentCenter);
+                this.rightWheel = Math.sin(DEG_90 * (1-percentCenter));
+            }else{console.log(percentCenter)}
 
-        if(rightTrackBias !== -1 || leftTrackBias !== -1) {
-            leftBias = leftTrackBias;
-            rightBias = rightTrackBias;
-        }
-        if(leftBias === -1) {
-            leftBias = rightBias;
-            // set left bias to right bias, then travel right till end and set to right bias
-        } else if(rightBias === -1) {
-            rightBias = leftBias;
-            // set right bias to left bias, then travel left till end and set to left bias
-        }
-
-        while(leftBias > 0) {
-            if(lineImage.data[(leftBias*4)+3] === 0) {
-                leftBias++;
-                break;
-            }
-            leftBias--;
-        }
-
-        while(rightBias < lineImage.width-1) {
-            if(lineImage.data[(rightBias*4)+3] === 0) {
-                rightBias--;
-                break;
-            }
-            rightBias++;
-        }
-
-        let speedBias = -1;
-        for(let i = leftBias;i <= rightBias;i++) {
-            speedBias = Math.max(speedBias, lineImage.data[(i*4)]);
-        }
-
-        if(speedBias > 0) {
-            this.speed = speedBias / 255;
-        }
-
-        const distortion = rightBias - leftBias; // Higher distortion, the sharper we should turn, unless distortion > halfWidth
-        if(distortion > halfLength) {
-            // distortion above threshold just go straight
-            this.leftWheel = 0.3 * 0.5;
-            this.rightWheel = 0.3 * 0.5;
-        } else {
-            const centerIndex = leftBias + ((rightBias - leftBias) / 2);
-            const percentCenter = Math.abs(centerIndex / lineImage.width);
-            const rightPercent = 1 - percentCenter;
-            const leftPercent = percentCenter;
-            this.leftWheel = 0.3 * leftPercent;
-            this.rightWheel = 0.3 * rightPercent;
         }
     }
 
     calculateNextPosition() {
         // calculate distance to travel based off left/right wheel speeds
-        const distance = (this.leftWheel < this.rightWheel ? this.leftWheel : this.rightWheel);
-
+        const distance = (
+            this.leftWheel < this.rightWheel
+                ? this.leftWheel
+                : this.rightWheel
+        );
         // calculate rotation based off difference in left/right wheel speeds
         const betaLength = Math.abs(this.leftWheel - this.rightWheel);
         const angle = Math.atan(betaLength);
@@ -156,11 +161,11 @@ export class Robot {
         const directionSin = Math.sin(this.direction);
 
         // Rotation pivot points are at the wheels, so the center x/y coord will shift some distance on rotation
-        this.x += directionCos * ((50*this.speed) * (betaLength/2));
-        this.y += directionSin * ((50*this.speed) * (betaLength/2));
+        this.x += directionCos * ((25*this.speed) * betaLength);
+        this.y += directionSin * ((25*this.speed) * betaLength);
 
         // distance is most relative to current speed
-        this.x += directionCos * ((50*this.speed) * distance);
-        this.y += directionSin * ((50*this.speed) * distance);
+        this.x += directionCos * ((25*this.speed) * distance);
+        this.y += directionSin * ((25*this.speed) * distance);
     }
 }
