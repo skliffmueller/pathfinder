@@ -1,5 +1,8 @@
 {
+
   "compilerOptions": {
+    "target": "esnext",
+    "moduleResolution": "node",
     "allowUnreachableCode": false,
     "alwaysStrict": true,
     "noImplicitAny": true,

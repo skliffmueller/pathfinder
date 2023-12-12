@@ -65,6 +65,6 @@ module.exports = {
         ],
     },
     plugins: [new HtmlWebpackPlugin({
-        title: 'Pathfinder',
+        template: "src/index.html",
     })],
 };
